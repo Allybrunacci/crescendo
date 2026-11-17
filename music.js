@@ -24,6 +24,8 @@ function spell(m, flat) {
 }
 const noteLabel = p => p.L + ACC_SIGN[p.a];
 const noteFull = p => noteLabel(p) + p.o;
+// The everyday spelling when there's no key to go by: C♯, E♭, F♯, A♭, B♭.
+const spellCommon = m => spell(m, [3, 8, 10].includes(mod(m, 12)));
 const pcLabel = (pc, flat) => { const n = (flat ? FLAT_NAMES : SHARP_NAMES)[mod(pc, 12)]; return n[0] + (n[1] === '#' ? '♯\uFE0E' : n[1] === 'b' ? '♭\uFE0E' : ''); };
 // Text-style ♯ and ♭ (some systems otherwise draw them as colour emoji).
 const textSym = s => String(s).replace(/([♯♭])(?!\uFE0E)/g, '$1\uFE0E');

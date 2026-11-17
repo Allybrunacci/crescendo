@@ -137,17 +137,28 @@ function createPlayer(host, piece, opts = {}) {
   }
 
   /* ---- Play along: waits for each note ---- */
+  const stepPcs = step => [...new Set(step.notes.map(n => mod(n, 12)))];
   function wait() {
     stop(true);
     st.mode = 'wait';
     steps = pieceSteps(piece, st.hands);
-    st.k = 0; st.wrong = 0; st.got = new Set(); st.started = 0;
-    unsub = onInput(ev => {
+    st.k = 0; st.wrong = 0; st.got = new Set(); st.started = 0; st.pcs = new Set(); st.chordAt = 0;
+    const u1 = onInput(ev => {
       if (ev.type !== 'on' || st.mode !== 'wait') return;
       const step = steps[st.k];
       if (!step) return;
       if (!st.started) st.started = performance.now();
       const m = ev.m;
+      // Through the microphone a chord needs all its notes heard. Single notes heard along the way count towards it
+      // (for chords played one note at a time); others are ignored, as they're as likely to be overtones as slips.
+      if (ev.src === 'mic' && step.notes.length > 1) {
+        const want = stepPcs(step), pc = mod(m, 12);
+        if (!want.includes(pc)) return;
+        st.pcs.add(pc);
+        if (kb) kb.flash(step.notes.find(n => mod(n, 12) === pc), 'ok', 300);
+        if (want.every(p => st.pcs.has(p))) advance();
+        return;
+      }
       const hit = step.notes.find(n => n === m || (ev.src === 'mic' && mod(n - m, 12) === 0));
       if (hit !== undefined) {
         st.got.add(hit);
@@ -160,6 +171,13 @@ function createPlayer(host, piece, opts = {}) {
         buzz(25);
       }
     }, true);
+    const u2 = onChord(e => {
+      const step = steps[st.k];
+      if (!e || st.mode !== 'wait' || !step || step.notes.length < 2 || e.onset <= st.chordAt) return;
+      if (!st.started) st.started = performance.now();
+      if (e.has(stepPcs(step))) { st.chordAt = e.onset; if (kb) step.notes.forEach(n => kb.flash(n, 'ok', 300)); advance(); }
+    });
+    unsub = () => { u1(); u2(); };
     showStep();
   }
   function showStep() {
@@ -179,6 +197,7 @@ function createPlayer(host, piece, opts = {}) {
     const step = steps[st.k];
     step.evs.forEach(e => { unmarkEv(e, 'on'); markEv(e, 'done'); });
     st.got = new Set();
+    st.pcs = new Set();
     st.k++;
     if (st.k >= steps.length) { finish('wait'); return; }
     showStep();
@@ -201,18 +220,30 @@ function createPlayer(host, piece, opts = {}) {
     const t0 = startT - time.beats * beatSec + (piece.pickup ? piece.pickup * spb : 0);
     const clickSched = scheduler(clicks.map(x => ({ ...x, at: x.at })), beatSec, { lead: Math.max(0.05, t0 - audioNow()), end: clicks.length, fn: (t, it) => { if (st.metro) click(t, it.beatInBar === 0 ? 0 : 1); } });
     const judge = steps.map(s => ({ ...s, time: startT + s.t * spb, hit: new Set(), ok: false }));
+    const win = Math.min(0.35, spb * 0.45), lat = () => (S.prefs.latency || 0) / 1000;
+    const done = j => { j.ok = true; j.evs.forEach(e => markEv(e, 'done')); };
     let wrongs = 0;
-    unsub = onInput(ev => {
+    const u1 = onInput(ev => {
       if (ev.type !== 'on' || st.mode !== 'time') return;
-      const tAudio = audioNow() - (S.prefs.latency || 0) / 1000;
-      const win = Math.min(0.35, spb * 0.45);
-      const cand = judge.find(j => !j.ok && Math.abs(tAudio - j.time) < win && j.notes.some(n => n === ev.m || (ev.src === 'mic' && mod(n - ev.m, 12) === 0)));
+      const tAudio = audioNow() - lat();
+      const near = judge.filter(j => !j.ok && Math.abs(tAudio - j.time) < win);
+      const cand = near.find(j => j.notes.some(n => n === ev.m || (ev.src === 'mic' && mod(n - ev.m, 12) === 0)));
       if (cand) {
-        cand.hit.add(ev.m);
-        if (cand.hit.size >= cand.notes.length || ev.src === 'mic') { cand.ok = true; cand.evs.forEach(e => markEv(e, 'done')); }
+        // Through the microphone, every note name of a chord has to be heard (by note or by the chord listener).
+        cand.hit.add(ev.src === 'mic' ? mod(ev.m, 12) : ev.m);
+        if (cand.hit.size >= (ev.src === 'mic' ? stepPcs(cand).length : cand.notes.length)) done(cand);
         if (kb) kb.flash(ev.m, 'ok', 250);
+      } else if (ev.src === 'mic' && near.some(j => j.notes.length > 1)) {
+        // Probably an overtone of the chord being played: not counted either way.
       } else { wrongs++; if (kb && ev.m >= kb.from && ev.m <= kb.to) kb.flash(ev.m, 'bad', 300); }
     }, true);
+    const u2 = onChord(e => {
+      if (!e || st.mode !== 'time') return;
+      const tOn = audioNow() - (performance.now() - e.onset) / 1000 - lat();
+      const cand = judge.find(j => !j.ok && j.notes.length > 1 && Math.abs(tOn - j.time) < win && e.has(stepPcs(j)));
+      if (cand) { done(cand); if (kb) cand.notes.forEach(n => kb.flash(n, 'ok', 250)); }
+    });
+    unsub = () => { u1(); u2(); };
     // Cursor.
     judge.forEach(j => {
       later(() => {

@@ -1,7 +1,7 @@
 /* Crescendo — where notes come from: on-screen keys, the computer keyboard, a MIDI piano, or the microphone */
 'use strict';
 
-const IN = { subs: new Set(), chromaSubs: new Set(), down: new Set(), keyBase: 60, ears: 0, midi: { status: 'off', names: [], access: null }, mic: { on: false, level: 0, heard: null, status: 'off' } };
+const IN = { subs: new Set(), chordSubs: new Set(), down: new Set(), keyBase: 60, ears: 0, midi: { status: 'off', names: [], access: null }, mic: { on: false, level: 0, heard: null, chord: null, status: 'off' } };
 // iPhone and iPad browsers (and Safari on a Mac) can't talk to MIDI keyboards, so there the microphone does that job.
 const MIDI_OK = typeof navigator.requestMIDIAccess === 'function';
 
@@ -21,7 +21,6 @@ function onInput(fn, listen = false) {
     if (--IN.ears === 0) MIC.idle = setTimeout(() => { if (!IN.ears && !MIC.manual && IN.mic.on) micStop(); }, 8000);
   };
 }
-function onChroma(fn) { IN.chromaSubs.add(fn); return () => IN.chromaSubs.delete(fn); }
 function emitInput(type, m, vel = 0.72, src = 'touch') {
   if (type === 'on') IN.down.add(m); else IN.down.delete(m);
   const sound = src === 'touch' || src === 'keys' || (src === 'midi' && typeof S !== 'undefined' && S.prefs.midiSound);
@@ -88,8 +87,9 @@ function onMidiMessage(e) {
   else if (cmd === 0xb0 && d1 === 64) setSustain(d2 >= 64);
 }
 
-/* ---------- microphone: pitch detection for single notes, a chroma “fingerprint” for chords ---------- */
-const MIC = { stream: null, src: null, an: null, timer: null, buf: null, fbuf: null, floor: 0.002, prev: 0, cand: null, active: null, onsetAt: 0, quiet: 0, chromaDue: 0, pending: null, idle: 0, manual: false };
+/* ---------- microphone: pitch detection for single notes; several notes at once (chords) with listen.js ---------- */
+const MIC = { stream: null, src: null, an: null, timer: null, buf: null, fbuf: null, floor: 0.002, prev: 0, cand: null, active: null, onsetAt: 0, quiet: 0, pending: null, idle: 0, manual: false,
+  chord: null, tune: 0, tx: 0, ty: 0 };
 function micStart() {
   if (MIC.timer) return Promise.resolve(true);
   if (!MIC.pending) MIC.pending = micOpen().finally(() => { MIC.pending = null; });
@@ -133,6 +133,8 @@ function micStop() {
   Object.assign(MIC, { stream: null, src: null, an: null });
   IN.mic.on = false;
   IN.mic.heard = null;
+  IN.mic.chord = null;
+  MIC.chord = null;
   MIC.manual = false;
   if (IN.mic.status === 'on') IN.mic.status = 'off';
   audioSessionType('playback');
@@ -186,14 +188,14 @@ function micTick() {
   const now = performance.now();
   // Ignore Crescendo's own piano (and the metronome's click pitches) so the phone doesn't hear itself.
   const self = AU.live.size > 0 || now < AU.selfUntil, clicking = clickSounding(now);
-  if (!self && rms > gate && rms > MIC.prev * 1.35 && now - MIC.onsetAt > 110) { MIC.onsetAt = now; MIC.cand = null; MIC.chromaDue = now + 90; }
+  if (!self && rms > gate && rms > MIC.prev * 1.35 && now - MIC.onsetAt > 110) { MIC.onsetAt = now; MIC.cand = null; chordStart(now); }
   MIC.prev = rms;
-  if (self) { MIC.cand = null; MIC.chromaDue = 0; }
+  if (self) { MIC.cand = null; MIC.chord = null; }
   else if (rms > gate) {
     MIC.quiet = 0;
     const r = yin(buf, sr, N - 2048);
     if (r && r.conf > 0.75 && r.f > 40 && r.f < 2400) {
-      const mf = 69 + 12 * Math.log2(r.f / 440), m = Math.round(mf);
+      const mf = 69 + 12 * Math.log2(r.f / 440) - MIC.tune, m = Math.round(mf);
       const isClick = clicking && CLICK_HZ.some(f => Math.abs(m - (69 + 12 * Math.log2(f / 440))) < 0.6);
       if (Math.abs(mf - m) < 0.42 && !isClick) {
         IN.mic.heard = m;
@@ -207,38 +209,53 @@ function micTick() {
         }
       }
     }
-    if (MIC.chromaDue && now >= MIC.chromaDue && IN.chromaSubs.size) { MIC.chromaDue = 0; emitChroma(); }
-  } else if (++MIC.quiet > 4 && MIC.active !== null) {
-    emitInput('off', MIC.active, 0, 'mic');
+    if (MIC.chord && now >= MIC.chord.due[0] && !clicking) chordFrame(now);
+  } else if (++MIC.quiet > 4) {
+    if (MIC.active !== null) emitInput('off', MIC.active, 0, 'mic');
     MIC.active = null;
     IN.mic.heard = null;
+    if (MIC.chord) chordEnd();
+    if (IN.mic.chord) { IN.mic.chord = null; chordEmit(null); }
   }
 }
-// How strongly each of the 12 note names sounds right now (0–1).
-function micChroma() {
-  const an = MIC.an;
-  if (!an) return null;
+
+/* Chords: after you play, look at the sound about every 60 ms for 0.7 s and gather the notes heard (listen.js). */
+const CHORD_FRAMES = [90, 150, 210, 270, 330, 390, 450, 510, 570, 630];
+function onChord(fn) { IN.chordSubs.add(fn); return () => IN.chordSubs.delete(fn); }
+function chordStart(now) {
+  if (!IN.chordSubs.size) return;
+  // Notes rolled one after another (as beginners often do) build up one chord.
+  if (MIC.chord && now - MIC.chord.onset < 300) { MIC.chord.due = CHORD_FRAMES.map(t => now + t); return; }
+  MIC.chord = { onset: now, g: earGather(), due: CHORD_FRAMES.map(t => now + t) };
+}
+function chordFrame(now) {
+  const ch = MIC.chord, an = MIC.an;
+  while (ch.due.length && ch.due[0] <= now) ch.due.shift();
   an.getFloatFrequencyData(MIC.fbuf);
-  const sr = an.context.sampleRate, binHz = sr / an.fftSize, v = new Float32Array(12);
-  for (let k = Math.ceil(60 / binHz); k < Math.min(MIC.fbuf.length, 2200 / binHz); k++) {
-    const f = k * binHz, mf = 69 + 12 * Math.log2(f / 440), m = Math.round(mf);
-    if (Math.abs(mf - m) > 0.3) continue;
-    const mag = Math.pow(10, MIC.fbuf[k] / 20);
-    v[mod(m, 12)] += mag / (1 + f / 700);
-  }
-  const mx = Math.max(...v);
-  if (!(mx > 0)) return null;
-  return Array.from(v, x => x / mx);
+  const peaks = earPeaks(MIC.fbuf, an.context.sampleRate, an.fftSize);
+  // Learn how far this piano sits from concert pitch, so an old or out-of-tune piano is still heard right.
+  const t = earTune(peaks);
+  MIC.tx = MIC.tx * 0.9 + t.w * Math.cos(2 * Math.PI * t.tune);
+  MIC.ty = MIC.ty * 0.9 + t.w * Math.sin(2 * Math.PI * t.tune);
+  if (Math.hypot(MIC.tx, MIC.ty) > 0) MIC.tune = Math.atan2(MIC.ty, MIC.tx) / (2 * Math.PI);
+  ch.g.add(earNotes(peaks, { tune: MIC.tune }));
+  chordReport(ch, now, !ch.due.length);
 }
-function emitChroma() {
-  const v = micChroma();
-  if (!v) return;
-  for (const f of [...IN.chromaSubs]) { try { f(v); } catch (e) { console.error(e); } }
+function chordReport(ch, now, final) {
+  const heard = ch.g.heard();
+  if (heard.length >= 2) IN.mic.chord = { ms: heard.map(e => e.low).sort((a, b) => a - b), at: now };
+  else if (ch.g.frames >= 3) IN.mic.chord = null;
+  chordEmit({ heard, has: pcs => ch.g.has(pcs), onset: ch.onset, final });
+  if (final) MIC.chord = null;
 }
-// True if the chroma looks like these pitch classes are all sounding.
-function chromaHas(v, pcs) {
-  if (!v) return false;
-  const tot = v.reduce((a, b) => a + b, 0);
-  const inSet = pcs.reduce((a, pc) => a + v[pc], 0);
-  return pcs.every(pc => v[pc] >= 0.3) && inSet / tot >= 0.55;
+// The sound died away before the last look: report what was heard.
+function chordEnd() { const ch = MIC.chord; if (ch.g.frames) chordReport(ch, performance.now(), true); else MIC.chord = null; }
+function chordEmit(e) { for (const f of [...IN.chordSubs]) { try { f(e); } catch (err) { console.error(err); } } }
+// What "You're playing" shows: the keys held down, or the chord the microphone heard (note names only, as it can't
+// always tell which octave). Returns { ms, mic }.
+function playingNow() {
+  const c = IN.mic.chord;
+  if (c && performance.now() - c.at < 2500) return { ms: c.ms, mic: true };
+  return { ms: [...IN.down].sort((a, b) => a - b), mic: false };
 }
+const playingName = (m, mic) => (mic ? noteLabel(spellCommon(m)) : noteFull(spell(m)));

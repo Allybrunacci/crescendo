@@ -96,13 +96,13 @@ function freePlay(host) {
     <div class="heard" aria-live="polite"><span class="h-l">You’re playing</span><b class="h-n">–</b><small class="h-c"></small></div><div class="kb-host"></div>`;
   const kb = createKeyboard($('.kb-host', host), { from: 'C3', to: 'B5', labels: 'c' });
   const show = () => {
-    const ms = [...IN.down].sort((a, b) => a - b);
-    $('.h-n', host).textContent = ms.length ? ms.map(m => noteFull(spell(m))).join(' ') : '–';
+    const { ms, mic } = playingNow();
+    $('.h-n', host).textContent = ms.length ? ms.map(m => playingName(m, mic)).join(' ') : '–';
     const ch = identifyChord(ms);
     $('.h-c', host).textContent = ch.length ? `${pretty(ch[0])} chord` : '';
   };
-  const un = onInput(() => setTimeout(show, 0), true);
-  return () => { un(); kb.destroy(); };
+  const un = onInput(() => setTimeout(show, 0), true), unc = onChord(() => setTimeout(show, 0));
+  return () => { un(); unc(); kb.destroy(); };
 }
 
 /* ---------- the session screen ---------- */

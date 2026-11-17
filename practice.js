@@ -102,19 +102,19 @@ const TOOL_RUN = {
     let from = 48;
     const kb = createKeyboard($('.kb-host', host), { from, to: from + 24, labels: 'c', height: 170 });
     const show = () => {
-      const ms = [...IN.down].sort((a, b) => a - b);
-      $('.h-n', host).textContent = ms.length ? ms.map(m => noteFull(spell(m))).join('  ') : '–';
+      const { ms, mic } = playingNow();
+      $('.h-n', host).textContent = ms.length ? ms.map(m => playingName(m, mic)).join('  ') : '–';
       const ch = identifyChord(ms);
-      $('.h-c', host).textContent = ch.length ? `${pretty(ch[0])} · ${chordName(ch[0].replace(/\/.*/, ''))}` : ms.length === 2 ? intervalOf(spell(ms[0]), spell(ms[1])).name : '';
+      $('.h-c', host).textContent = ch.length ? `${pretty(ch[0])} · ${chordName(ch[0].replace(/\/.*/, ''))}` : ms.length === 2 && !mic ? intervalOf(spell(ms[0]), spell(ms[1])).name : '';
     };
-    const un = onInput(() => setTimeout(show, 0), true);
+    const un = onInput(() => setTimeout(show, 0), true), unc = onChord(() => setTimeout(show, 0));
     host.addEventListener('click', e => {
       const b = e.target.closest('button');
       if (!b) return;
       if (b.dataset.o) { from = clamp(from + +b.dataset.o, 21, 84); kb.setRange(from, from + 24); }
       if ('ped' in b.dataset) { setSustain(!AU.sustain); b.classList.toggle('on', AU.sustain); }
     });
-    return () => { un(); kb.destroy(); setSustain(false); };
+    return () => { un(); unc(); kb.destroy(); setSustain(false); };
   },
   chordfinder(host) {
     let root = 'C', type = '', inv = 0;

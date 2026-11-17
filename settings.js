@@ -70,14 +70,14 @@ function applyPrefs() {
 
 /* ---------- settings ---------- */
 function openSettings() {
-  let micTimer = null;
+  let micTimer = null, unChord = null;
   const inputRow = () => {
     const midi = IN.midi.status, mic = IN.mic.status;
     return `<div class="seg" role="radiogroup" aria-label="How Crescendo hears you">${[['touch', 'Screen keys'], ['midi', 'MIDI piano'], ['mic', 'Microphone']].map(([k, l]) => `<button type="button" role="radio" aria-checked="${S.prefs.input === k}" class="${S.prefs.input === k ? 'on' : ''}" data-act="input" data-v="${k}">${l}</button>`).join('')}</div>
       ${S.prefs.input === 'midi' ? `<p class="small">${midi === 'on' ? `${icon('check')} Connected: <b>${esc(IN.midi.names.join(', '))}</b>` : midi === 'none' ? 'No MIDI keyboard found. Plug it in (a USB-C adapter works for most phones), then tap Connect.' : midi === 'unsupported' || !MIDI_OK ? (IOS ? 'iPhone and iPad can’t connect to a keyboard by cable or Bluetooth MIDI. Choose <b>Microphone</b> instead: Crescendo hears your keyboard through its speakers.' : 'This browser can’t connect to a keyboard by cable. Choose <b>Microphone</b>, or use Chrome or Edge.') : midi === 'denied' ? 'MIDI access was blocked. Allow it in your browser settings.' : 'Connect a digital piano or keyboard by USB or Bluetooth MIDI.'}</p>
         ${MIDI_OK ? `<div class="btn-row"><button type="button" class="btn sm" data-act="midi">${icon('plug')} ${midi === 'on' ? 'Reconnect' : 'Connect'}</button></div>${switchRow('midiSound', 'Play Crescendo’s sound too', 'Turn on if your keyboard has no speakers', S.prefs.midiSound)}` : ''}` : ''}
-      ${S.prefs.input === 'mic' ? `<p class="small">Crescendo listens through your microphone while an exercise or song needs to hear you, and recognises single notes (and, more roughly, chords). Works best in a quiet room with the phone near the piano. Nothing is recorded or sent anywhere.</p>
-        <div class="mic-meter"><i style="width:0%"></i></div><p class="small mic-heard">${mic === 'on' ? 'Listening…' : mic === 'denied' ? 'Microphone access was blocked. Allow it in your browser settings.' : 'Tap Start to test it.'}</p>
+      ${S.prefs.input === 'mic' ? `<p class="small">Crescendo listens through your microphone while an exercise or song needs to hear you. It recognises single notes and chords, and adjusts to a piano that isn’t quite in tune. Works best in a quiet room with the phone near the piano. Nothing is recorded or sent anywhere.</p>
+        <div class="mic-meter"><i style="width:0%"></i></div><p class="small mic-heard">${mic === 'on' ? 'Listening… play a note or a chord.' : mic === 'denied' ? 'Microphone access was blocked. Allow it in your browser settings.' : 'Tap Start to test it with a note or a chord.'}</p>
         <div class="btn-row"><button type="button" class="btn sm" data-act="mic">${icon('mic')} ${IN.mic.on ? 'Stop listening' : 'Start listening'}</button></div>
         <div class="switch-row"><span><b>Sensitivity</b><small>Raise it if quiet notes are missed</small></span>${stepper('sens', `${Math.round(S.prefs.micSens * 100)}%`, 'Microphone sensitivity')}</div>` : ''}
       ${S.prefs.input === 'touch' ? '<p class="small">Tap the keys on screen. On a computer you can also use the keyboard: A–K for white notes, W E T Y U for black notes, Z/X to change octave.</p>' : ''}`;
@@ -110,9 +110,19 @@ function openSettings() {
     label: 'Settings', cls: 'tall',
     onSet: s => {
       clearInterval(micTimer);
-      if (S.prefs.input === 'mic') micTimer = setInterval(() => { const m = $('.mic-meter i', s.el), h = $('.mic-heard', s.el); if (!m) return; m.style.width = `${Math.round(IN.mic.level * 100)}%`; if (IN.mic.on && h) h.textContent = IN.mic.heard !== null ? `I hear: ${noteFull(spell(IN.mic.heard))}` : 'Listening…'; }, 80);
+      if (unChord) { unChord(); unChord = null; }
+      if (S.prefs.input !== 'mic') return;
+      unChord = onChord(() => {});
+      micTimer = setInterval(() => {
+        const m = $('.mic-meter i', s.el), h = $('.mic-heard', s.el);
+        if (!m) return;
+        m.style.width = `${Math.round(IN.mic.level * 100)}%`;
+        if (!IN.mic.on || !h) return;
+        const { ms, mic } = playingNow(), ch = identifyChord(ms);
+        h.textContent = mic && ms.length > 1 ? `I hear: ${ms.map(x => playingName(x, true)).join(' ')}${ch.length ? ` · ${chordName(ch[0].replace(/\/.*/, ''))}` : ''}` : IN.mic.heard !== null ? `I hear: ${noteFull(spell(IN.mic.heard))}` : 'Listening… play a note or a chord.';
+      }, 80);
     },
-    onClose: () => { clearInterval(micTimer); if (MIC.manual) { MIC.manual = false; if (!IN.ears) micStop(); } save(); render(); },
+    onClose: () => { clearInterval(micTimer); if (unChord) unChord(); if (MIC.manual) { MIC.manual = false; if (!IN.ears) micStop(); } save(); render(); },
     act: {
       wk(a, e, s) { const d = +a.dataset.d; S.week[d] = clamp(S.week[d] + +a.dataset.v, 0, 120); save(); s.set(tpl()); },
       inst(a, e, s) { S.prefs.instrument = a.dataset.v; save(); s.set(tpl()); },

@@ -45,7 +45,7 @@ function runDrill(host, spec, onDone) {
       return kb;
     },
     input(fn) { if (unsub) unsub(); unsub = onInput(ev => { if (!stopped) fn(ev); }, true); },
-    chroma(fn) { const u = onChroma(v => { if (!stopped) fn(v); }); cleanups.push(u); },
+    chord(fn) { const u = onChord(e => { if (!stopped) fn(e); }); cleanups.push(u); },
     prog() { sh.prog.innerHTML = `<span class="pips">${Array.from({ length: n }, (_, i) => `<i class="${i < res.total ? 'done' : ''}${i === res.total ? ' cur' : ''}"></i>`).join('')}</span>`; },
     // Record an answer; then the next question (or the end) after a moment.
     answer(ok, key, ms, msg) {
@@ -484,28 +484,36 @@ const DRILLS = {
       const sp = api.spec;
       const pool = sp.chords || ['C', 'F', 'G', 'Am', 'Dm', 'Em'];
       const kb = api.kb({ from: 'C4', to: 'B5', labels: 'c' });
-      let want = null, sel = new Set(), t0 = 0;
-      const check = () => {
+      let want = null, sel = new Set(), t0 = 0, lastHeard = null;
+      // heard: from the microphone, { pcs, low } (note names heard and the lowest note) instead of keys.
+      const check = heard => {
         if (!want) return;
-        const pcs = chordPcs(want), got = [...new Set([...sel].map(m => mod(m, 12)))];
+        const pcs = chordPcs(want), got = heard ? heard.pcs : [...new Set([...sel].map(m => mod(m, 12)))];
         const okSet = got.length === pcs.length && pcs.every(pc => got.includes(pc));
-        const rootOk = !sp.root || mod(Math.min(...sel), 12) === pcs[0];
+        const rootOk = !sp.root || mod(heard ? heard.low : Math.min(...sel), 12) === pcs[0];
         const ok = okSet && rootOk;
         const w = want; want = null;
         if (!ok) chordPitches(w, 4).forEach(p => kb.mark(p.m, 'target', noteLabel(p)));
         playChord(chordPitches(w, 4).map(p => p.m), 1.2, 0, 0.6);
         api.answer(ok, `ch:${w}`, performance.now() - t0, ok ? `${icon('check')} ${pretty(w)} = ${chordPitches(w, 4).map(noteLabel).join(' ')}` : `${icon('x')} ${pretty(w)} is ${chordPitches(w, 4).map(noteLabel).join(' – ')}${okSet && !rootOk ? ' (start from the root)' : ''}.`);
       };
-      return {
+      const ctrl = {
         ask() {
           want = pick(api.r, pool);
           api.mark(want);
           sel = new Set();
+          lastHeard = null;
           kb.clear();
           t0 = performance.now();
+          const mic = S.prefs.input === 'mic';
           api.sh.q.innerHTML = `<div class="big-letter">${pretty(want)}</div><p class="prompt">${sp.root ? 'Play it in root position' : 'Play this chord'}: ${S.prefs.input === 'touch' ? 'tap its notes, then <b>Check</b>' : 'hold all its notes together'}</p>`;
-          api.sh.a.innerHTML = `<div class="rh-btns"><button type="button" class="btn ghost sm" data-cb="clear">Clear</button><button type="button" class="btn primary sm" data-cb="check">${icon('check')} Check</button></div>`;
-          api.sh.a.onclick = e => { const b = e.target.closest('[data-cb]'); if (!b) return; if (b.dataset.cb === 'clear') { sel.clear(); kb.clear('sel'); } else if (sel.size) check(); };
+          api.sh.a.innerHTML = `<div class="rh-btns">${mic ? '' : '<button type="button" class="btn ghost sm" data-cb="clear">Clear</button>'}<button type="button" class="btn primary sm" data-cb="check">${icon('check')} ${mic ? 'Mark it' : 'Check'}</button></div>`;
+          api.sh.a.onclick = e => {
+            const b = e.target.closest('[data-cb]');
+            if (!b) return;
+            if (b.dataset.cb === 'clear') { sel.clear(); kb.clear('sel'); } else if (sel.size) check(); else if (mic && lastHeard) check(lastHeard);
+            else if (mic) { api.sh.fb.className = 'dr-fb'; api.sh.fb.innerHTML = `${icon('ear')} I haven’t heard a chord yet. Play all its notes together.`; }
+          };
           api.input(ev => {
             if (!want) return;
             if (ev.src === 'touch') {
@@ -516,9 +524,23 @@ const DRILLS = {
             if (ev.src === 'mic') return;
             if (ev.type === 'on') { sel = new Set(IN.down); if (sel.size >= chordPcs(want).length) setTimeout(() => { if (want) { sel = new Set([...IN.down, ...sel]); check(); } }, 220); }
           });
-          if (S.prefs.input === 'mic') api.chroma(v => { if (want && chromaHas(v, chordPcs(want))) { sel = new Set(chordPitches(want, 4).map(p => p.m)); check(); } });
+        },
+        // From the microphone: the notes heard after each chord you play (see listen.js).
+        heard(e) {
+          if (!want || !e || !e.heard.length) return;
+          const pcs = chordPcs(want), bass = e.heard.reduce((a, x) => (x.low < a.low ? x : a));
+          lastHeard = { pcs: e.heard.map(x => x.pc), low: bass.low };
+          kb.clear('sel');
+          e.heard.forEach(x => kb.mark(60 + x.pc, 'sel'));
+          if (e.has(pcs)) { check({ pcs, low: bass.low }); return; }
+          if (e.final && e.heard.length >= 2) {
+            api.sh.fb.className = 'dr-fb';
+            api.sh.fb.innerHTML = `${icon('ear')} I heard ${e.heard.slice().sort((a, b) => a.low - b.low).map(x => `<b>${noteLabel(spellCommon(x.low))}</b>`).join(' ')}. Not quite: try again, or tap <b>Mark it</b>.`;
+          }
         },
       };
+      if (S.prefs.input === 'mic') api.chord(e => ctrl.heard(e));
+      return ctrl;
     },
   },
 
