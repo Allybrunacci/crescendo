@@ -101,7 +101,7 @@ function freePlay(host) {
     const ch = identifyChord(ms);
     $('.h-c', host).textContent = ch.length ? `${pretty(ch[0])} chord` : '';
   };
-  const un = onInput(() => setTimeout(show, 0));
+  const un = onInput(() => setTimeout(show, 0), true);
   return () => { un(); kb.destroy(); };
 }
 

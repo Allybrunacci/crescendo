@@ -7,7 +7,7 @@ function showLabels(level) {
   if (S.prefs.labels === 'never') return false;
   return (level || 1) <= 1 && !(S.lessons.u2l2 && S.lessons.u2l2.done);
 }
-const INPUT_HINT = () => (S.prefs.input === 'midi' && IN.midi.status === 'on' ? 'Play it on your keyboard' : S.prefs.input === 'mic' && IN.mic.on ? 'Play it on your piano — I’m listening' : 'Play it on your piano, or tap the keys below');
+const INPUT_HINT = () => (S.prefs.input === 'midi' && IN.midi.status === 'on' ? 'Play it on your keyboard' : S.prefs.input === 'mic' && (IN.mic.on || MIC.pending) ? 'Play it on your piano — I’m listening' : 'Play it on your piano, or tap the keys below');
 
 function createPlayer(host, piece, opts = {}) {
   const st = {
@@ -142,7 +142,6 @@ function createPlayer(host, piece, opts = {}) {
     st.mode = 'wait';
     steps = pieceSteps(piece, st.hands);
     st.k = 0; st.wrong = 0; st.got = new Set(); st.started = 0;
-    showStep();
     unsub = onInput(ev => {
       if (ev.type !== 'on' || st.mode !== 'wait') return;
       const step = steps[st.k];
@@ -160,7 +159,8 @@ function createPlayer(host, piece, opts = {}) {
         say(`${icon('x')} That was ${noteLabel(spell(m))}. Look for the ${step.notes.length > 1 ? 'blue keys' : 'blue key'}.`, 'bad');
         buzz(25);
       }
-    });
+    }, true);
+    showStep();
   }
   function showStep() {
     const step = steps[st.k];
@@ -199,8 +199,7 @@ function createPlayer(host, piece, opts = {}) {
     const clicks = [];
     for (let t = startT - time.beats * beatSec + (piece.pickup ? piece.pickup * spb : 0), n = 0; t < total - 1e-3; t += beatSec, n++) clicks.push({ at: n, beatInBar: n % time.beats });
     const t0 = startT - time.beats * beatSec + (piece.pickup ? piece.pickup * spb : 0);
-    const c = ac();
-    const clickSched = scheduler(clicks.map(x => ({ ...x, at: x.at })), beatSec, { lead: Math.max(0.05, t0 - c.currentTime), end: clicks.length, fn: (t, it) => { if (st.metro) click(t, it.beatInBar === 0 ? 0 : 1); } });
+    const clickSched = scheduler(clicks.map(x => ({ ...x, at: x.at })), beatSec, { lead: Math.max(0.05, t0 - audioNow()), end: clicks.length, fn: (t, it) => { if (st.metro) click(t, it.beatInBar === 0 ? 0 : 1); } });
     const judge = steps.map(s => ({ ...s, time: startT + s.t * spb, hit: new Set(), ok: false }));
     let wrongs = 0;
     unsub = onInput(ev => {
@@ -213,7 +212,7 @@ function createPlayer(host, piece, opts = {}) {
         if (cand.hit.size >= cand.notes.length || ev.src === 'mic') { cand.ok = true; cand.evs.forEach(e => markEv(e, 'done')); }
         if (kb) kb.flash(ev.m, 'ok', 250);
       } else { wrongs++; if (kb && ev.m >= kb.from && ev.m <= kb.to) kb.flash(ev.m, 'bad', 300); }
-    });
+    }, true);
     // Cursor.
     judge.forEach(j => {
       later(() => {

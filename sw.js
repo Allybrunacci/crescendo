@@ -1,6 +1,6 @@
 /* Crescendo — offline support. Network first so updates show straight away; the cache is the fallback.
    Only touches its own caches and its own folder, so other apps on the same site are unaffected. */
-const CACHE = 'crescendo-v1';
+const CACHE = 'crescendo-v2';
 const SHELL = [
   './', './index.html', './app.css', './music.js', './audio.js', './input.js', './core.js', './notation.js', './keyboard.js', './player.js',
   './drills.js', './lessons.js', './lessons2.js', './songs.js', './library.js', './planner.js', './learn.js', './session.js', './practice.js',

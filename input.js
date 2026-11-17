@@ -1,9 +1,26 @@
 /* Crescendo — where notes come from: on-screen keys, the computer keyboard, a MIDI piano, or the microphone */
 'use strict';
 
-const IN = { subs: new Set(), chromaSubs: new Set(), down: new Set(), keyBase: 60, midi: { status: 'off', names: [], access: null }, mic: { on: false, level: 0, heard: null, status: 'off' } };
+const IN = { subs: new Set(), chromaSubs: new Set(), down: new Set(), keyBase: 60, ears: 0, midi: { status: 'off', names: [], access: null }, mic: { on: false, level: 0, heard: null, status: 'off' } };
+// iPhone and iPad browsers (and Safari on a Mac) can't talk to MIDI keyboards, so there the microphone does that job.
+const MIDI_OK = typeof navigator.requestMIDIAccess === 'function';
 
-function onInput(fn) { IN.subs.add(fn); return () => IN.subs.delete(fn); }
+// listen = true for exercises that need to hear you play; in microphone mode that starts the microphone,
+// and it stops again a few seconds after the last of them finishes.
+function onInput(fn, listen = false) {
+  IN.subs.add(fn);
+  if (!listen) return () => IN.subs.delete(fn);
+  IN.ears++;
+  clearTimeout(MIC.idle);
+  ensureEars();
+  let on = true;
+  return () => {
+    IN.subs.delete(fn);
+    if (!on) return;
+    on = false;
+    if (--IN.ears === 0) MIC.idle = setTimeout(() => { if (!IN.ears && !MIC.manual && IN.mic.on) micStop(); }, 8000);
+  };
+}
 function onChroma(fn) { IN.chromaSubs.add(fn); return () => IN.chromaSubs.delete(fn); }
 function emitInput(type, m, vel = 0.72, src = 'touch') {
   if (type === 'on') IN.down.add(m); else IN.down.delete(m);
@@ -72,17 +89,24 @@ function onMidiMessage(e) {
 }
 
 /* ---------- microphone: pitch detection for single notes, a chroma “fingerprint” for chords ---------- */
-const MIC = { stream: null, src: null, an: null, timer: null, buf: null, fbuf: null, floor: 0.002, prev: 0, cand: null, active: null, onsetAt: 0, quiet: 0, chromaDue: 0 };
-async function micStart() {
-  if (MIC.timer) return true;
+const MIC = { stream: null, src: null, an: null, timer: null, buf: null, fbuf: null, floor: 0.002, prev: 0, cand: null, active: null, onsetAt: 0, quiet: 0, chromaDue: 0, pending: null, idle: 0, manual: false };
+function micStart() {
+  if (MIC.timer) return Promise.resolve(true);
+  if (!MIC.pending) MIC.pending = micOpen().finally(() => { MIC.pending = null; });
+  return MIC.pending;
+}
+async function micOpen() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { IN.mic.status = 'unsupported'; return false; }
+  audioSessionType('play-and-record');
   try {
     MIC.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
   } catch (e) {
+    audioSessionType('playback');
     IN.mic.status = 'denied';
     return false;
   }
   const c = ac();
+  if (!c) { MIC.stream.getTracks().forEach(t => t.stop()); MIC.stream = null; audioSessionType('playback'); IN.mic.status = 'unsupported'; return false; }
   if (c.state !== 'running') await c.resume().catch(() => {});
   MIC.src = c.createMediaStreamSource(MIC.stream);
   MIC.an = c.createAnalyser();
@@ -92,6 +116,9 @@ async function micStart() {
   MIC.buf = new Float32Array(MIC.an.fftSize);
   MIC.fbuf = new Float32Array(MIC.an.frequencyBinCount);
   MIC.timer = setInterval(micTick, 22);
+  // iPhone ends the microphone when another app takes it; it starts again the next time Crescendo needs it.
+  const stream = MIC.stream;
+  stream.getAudioTracks().forEach(t => { t.onended = () => { if (MIC.stream === stream) micStop(); }; });
   IN.mic.on = true;
   IN.mic.status = 'on';
   return true;
@@ -105,8 +132,21 @@ function micStop() {
   if (MIC.src) MIC.src.disconnect();
   Object.assign(MIC, { stream: null, src: null, an: null });
   IN.mic.on = false;
-  IN.mic.status = 'off';
+  IN.mic.heard = null;
+  MIC.manual = false;
+  if (IN.mic.status === 'on') IN.mic.status = 'off';
+  audioSessionType('playback');
 }
+// In microphone mode, listen while an exercise needs to hear you. Not while the app is in the background.
+function ensureEars() {
+  if (typeof S === 'undefined' || !S || S.prefs.input !== 'mic' || !IN.ears || IN.mic.on || MIC.pending || document.hidden) return;
+  if (IN.mic.status === 'denied' || IN.mic.status === 'unsupported') return;
+  micStart().then(ok => {
+    if (!ok && typeof toast === 'function') toast(IN.mic.status === 'unsupported' ? 'This browser can’t use the microphone. Tap the keys on screen instead.' : 'Crescendo can’t use the microphone. Allow it for this site in your browser’s settings, or tap the keys on screen.');
+  });
+}
+['pointerup', 'touchend', 'keydown'].forEach(t => document.addEventListener(t, ensureEars, { capture: true, passive: true }));
+document.addEventListener('visibilitychange', () => { if (document.hidden) { if (IN.mic.on) micStop(); } else ensureEars(); });
 // YIN pitch estimate over the newest samples. Returns { f, conf } or null.
 function yin(buf, sr, start, W = 1024) {
   const maxTau = Math.min(W, Math.floor(sr / 50)), minTau = Math.floor(sr / 2200);
@@ -144,14 +184,18 @@ function micTick() {
   const gate = Math.max(0.004, MIC.floor * 3) / sens;
   IN.mic.level = Math.min(1, rms * 8);
   const now = performance.now();
-  if (rms > gate && rms > MIC.prev * 1.35 && now - MIC.onsetAt > 110) { MIC.onsetAt = now; MIC.cand = null; MIC.chromaDue = now + 90; }
+  // Ignore Crescendo's own piano (and the metronome's click pitches) so the phone doesn't hear itself.
+  const self = AU.live.size > 0 || now < AU.selfUntil, clicking = clickSounding(now);
+  if (!self && rms > gate && rms > MIC.prev * 1.35 && now - MIC.onsetAt > 110) { MIC.onsetAt = now; MIC.cand = null; MIC.chromaDue = now + 90; }
   MIC.prev = rms;
-  if (rms > gate) {
+  if (self) { MIC.cand = null; MIC.chromaDue = 0; }
+  else if (rms > gate) {
     MIC.quiet = 0;
     const r = yin(buf, sr, N - 2048);
     if (r && r.conf > 0.75 && r.f > 40 && r.f < 2400) {
       const mf = 69 + 12 * Math.log2(r.f / 440), m = Math.round(mf);
-      if (Math.abs(mf - m) < 0.42) {
+      const isClick = clicking && CLICK_HZ.some(f => Math.abs(m - (69 + 12 * Math.log2(f / 440))) < 0.6);
+      if (Math.abs(mf - m) < 0.42 && !isClick) {
         IN.mic.heard = m;
         if (MIC.cand && MIC.cand.m === m) MIC.cand.n++; else MIC.cand = { m, n: 1 };
         const fresh = now - MIC.onsetAt < 260;

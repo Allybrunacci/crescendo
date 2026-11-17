@@ -107,7 +107,7 @@ const TOOL_RUN = {
       const ch = identifyChord(ms);
       $('.h-c', host).textContent = ch.length ? `${pretty(ch[0])} · ${chordName(ch[0].replace(/\/.*/, ''))}` : ms.length === 2 ? intervalOf(spell(ms[0]), spell(ms[1])).name : '';
     };
-    const un = onInput(() => setTimeout(show, 0));
+    const un = onInput(() => setTimeout(show, 0), true);
     host.addEventListener('click', e => {
       const b = e.target.closest('button');
       if (!b) return;

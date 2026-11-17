@@ -74,9 +74,9 @@ function openSettings() {
   const inputRow = () => {
     const midi = IN.midi.status, mic = IN.mic.status;
     return `<div class="seg" role="radiogroup" aria-label="How Crescendo hears you">${[['touch', 'Screen keys'], ['midi', 'MIDI piano'], ['mic', 'Microphone']].map(([k, l]) => `<button type="button" role="radio" aria-checked="${S.prefs.input === k}" class="${S.prefs.input === k ? 'on' : ''}" data-act="input" data-v="${k}">${l}</button>`).join('')}</div>
-      ${S.prefs.input === 'midi' ? `<p class="small">${midi === 'on' ? `${icon('check')} Connected: <b>${esc(IN.midi.names.join(', '))}</b>` : midi === 'none' ? 'No MIDI keyboard found. Plug it in (a USB-C adapter works for most phones), then tap Connect.' : midi === 'unsupported' ? 'This browser can’t use MIDI. Try Chrome or Edge.' : midi === 'denied' ? 'MIDI access was blocked. Allow it in your browser settings.' : 'Connect a digital piano or keyboard by USB or Bluetooth MIDI.'}</p>
-        <div class="btn-row"><button type="button" class="btn sm" data-act="midi">${icon('plug')} ${midi === 'on' ? 'Reconnect' : 'Connect'}</button></div>${switchRow('midiSound', 'Play Crescendo’s sound too', 'Turn on if your keyboard has no speakers', S.prefs.midiSound)}` : ''}
-      ${S.prefs.input === 'mic' ? `<p class="small">Crescendo listens through your microphone and recognises single notes (and, more roughly, chords). Works best in a quiet room with the phone near the piano. Nothing is recorded or sent anywhere.</p>
+      ${S.prefs.input === 'midi' ? `<p class="small">${midi === 'on' ? `${icon('check')} Connected: <b>${esc(IN.midi.names.join(', '))}</b>` : midi === 'none' ? 'No MIDI keyboard found. Plug it in (a USB-C adapter works for most phones), then tap Connect.' : midi === 'unsupported' || !MIDI_OK ? (IOS ? 'iPhone and iPad can’t connect to a keyboard by cable or Bluetooth MIDI. Choose <b>Microphone</b> instead: Crescendo hears your keyboard through its speakers.' : 'This browser can’t connect to a keyboard by cable. Choose <b>Microphone</b>, or use Chrome or Edge.') : midi === 'denied' ? 'MIDI access was blocked. Allow it in your browser settings.' : 'Connect a digital piano or keyboard by USB or Bluetooth MIDI.'}</p>
+        ${MIDI_OK ? `<div class="btn-row"><button type="button" class="btn sm" data-act="midi">${icon('plug')} ${midi === 'on' ? 'Reconnect' : 'Connect'}</button></div>${switchRow('midiSound', 'Play Crescendo’s sound too', 'Turn on if your keyboard has no speakers', S.prefs.midiSound)}` : ''}` : ''}
+      ${S.prefs.input === 'mic' ? `<p class="small">Crescendo listens through your microphone while an exercise or song needs to hear you, and recognises single notes (and, more roughly, chords). Works best in a quiet room with the phone near the piano. Nothing is recorded or sent anywhere.</p>
         <div class="mic-meter"><i style="width:0%"></i></div><p class="small mic-heard">${mic === 'on' ? 'Listening…' : mic === 'denied' ? 'Microphone access was blocked. Allow it in your browser settings.' : 'Tap Start to test it.'}</p>
         <div class="btn-row"><button type="button" class="btn sm" data-act="mic">${icon('mic')} ${IN.mic.on ? 'Stop listening' : 'Start listening'}</button></div>
         <div class="switch-row"><span><b>Sensitivity</b><small>Raise it if quiet notes are missed</small></span>${stepper('sens', `${Math.round(S.prefs.micSens * 100)}%`, 'Microphone sensitivity')}</div>` : ''}
@@ -89,6 +89,7 @@ function openSettings() {
       <div class="seg sm" role="radiogroup" aria-label="Instrument">${[['acoustic', 'Acoustic'], ['digital', 'Digital / keyboard'], ['none', 'None yet']].map(([k, l]) => `<button type="button" role="radio" aria-checked="${S.prefs.instrument === k}" class="${S.prefs.instrument === k ? 'on' : ''}" data-act="inst" data-v="${k}">${l}</button>`).join('')}</div>
       <h4>How Crescendo hears you</h4><div class="input-pick">${inputRow()}</div></div></div>
     <div class="set-group"><h3>Sound</h3><div class="card pad">
+      <div class="switch-row"><span><b>Can you hear it?</b><small>${IOS ? 'No sound? Turn it up with the side buttons. Crescendo should play even in Silent mode; if it stays quiet, turn Silent mode off.' : 'No sound? Check your phone’s volume.'}</small></span><button type="button" class="btn sm" data-act="testSound">${icon('play')} Test</button></div>
       <label class="field"><span>Piano volume</span><input type="range" name="vol" min="0" max="1" step="0.05" value="${S.prefs.vol}"></label>
       <label class="field"><span>Metronome volume</span><input type="range" name="metVol" min="0" max="1" step="0.05" value="${S.prefs.metVol}"></label>
       <div class="switch-row"><span><b>Tap timing</b><small>${S.prefs.latency ? `Adjusted by ${S.prefs.latency} ms` : 'Calibrate if rhythm scores seem off'}</small></span><button type="button" class="btn sm" data-act="calib">Calibrate</button></div></div></div>
@@ -111,13 +112,14 @@ function openSettings() {
       clearInterval(micTimer);
       if (S.prefs.input === 'mic') micTimer = setInterval(() => { const m = $('.mic-meter i', s.el), h = $('.mic-heard', s.el); if (!m) return; m.style.width = `${Math.round(IN.mic.level * 100)}%`; if (IN.mic.on && h) h.textContent = IN.mic.heard !== null ? `I hear: ${noteFull(spell(IN.mic.heard))}` : 'Listening…'; }, 80);
     },
-    onClose: () => { clearInterval(micTimer); save(); render(); },
+    onClose: () => { clearInterval(micTimer); if (MIC.manual) { MIC.manual = false; if (!IN.ears) micStop(); } save(); render(); },
     act: {
       wk(a, e, s) { const d = +a.dataset.d; S.week[d] = clamp(S.week[d] + +a.dataset.v, 0, 120); save(); s.set(tpl()); },
       inst(a, e, s) { S.prefs.instrument = a.dataset.v; save(); s.set(tpl()); },
       async input(a, e, s) { S.prefs.input = a.dataset.v; if (a.dataset.v !== 'mic' && IN.mic.on) micStop(); if (a.dataset.v === 'midi') await midiConnect(); save(); s.set(tpl()); },
       async midi(a, e, s) { await midiConnect(); s.set(tpl()); },
-      async mic(a, e, s) { if (IN.mic.on) micStop(); else await micStart(); s.set(tpl()); },
+      async mic(a, e, s) { if (IN.mic.on) micStop(); else { MIC.manual = true; if (!(await micStart())) MIC.manual = false; } s.set(tpl()); },
+      testSound() { playSeq([60, 64, 67, 72], 0.22, 0.6); },
       step(a, e, s) {
         const n = a.dataset.name, d = +a.dataset.d;
         if (n === 'sens') S.prefs.micSens = clamp(Math.round((S.prefs.micSens + d * 0.25) * 100) / 100, 0.5, 2);
@@ -139,7 +141,7 @@ function openSettings() {
       const t = e.target;
       if (t.name === 'name') { S.name = t.value.trim().slice(0, 40); clearTimeout(t._t); t._t = setTimeout(save, 300); }
       if (t.name === 'vol') { S.prefs.vol = +t.value; setVolume(S.prefs.vol); playNote(67, 0.3); }
-      if (t.name === 'metVol') { S.prefs.metVol = +t.value; setMetVolume(S.prefs.metVol); click(ac().currentTime + 0.02, 1); }
+      if (t.name === 'metVol') { S.prefs.metVol = +t.value; setMetVolume(S.prefs.metVol); click(audioNow() + 0.02, 1); }
     },
     change(e, s) {
       const t = e.target;
@@ -193,7 +195,7 @@ function startOnboarding() {
       <p class="lead">Short lessons, a daily practice plan built around your time, and real music to play: reading, rhythm, scales, chords and songs.</p>
       <label class="field"><span>What should we call you?</span><input class="input" name="name" maxlength="40" value="${esc(st.name)}" placeholder="Your name (optional)" autocomplete="given-name"></label>`;
     if (st.step === 1) return `<h1>What will you play on?</h1><p class="lead">Crescendo works with any piano, and with the keys on screen.</p>
-      <div class="pick">${[['acoustic', 'An acoustic piano', 'Crescendo can listen through the microphone.'], ['digital', 'A digital piano or keyboard', 'Connect it by USB or Bluetooth so Crescendo hears every note.'], ['none', 'No piano yet', 'Use the on-screen keys for now.']].map(([k, t, s]) => `<button type="button" class="pick-o${st.inst === k ? ' on' : ''}" data-act="inst" data-v="${k}"><b>${t}</b><small>${s}</small></button>`).join('')}</div>
+      <div class="pick">${[['acoustic', 'An acoustic piano', 'Crescendo listens through the microphone.'], ['digital', 'A digital piano or keyboard', MIDI_OK ? 'Connect it by USB or Bluetooth so Crescendo hears every note.' : 'Crescendo listens through the microphone (this phone can’t connect to a keyboard by cable).'], ['none', 'No piano yet', 'Use the on-screen keys for now.']].map(([k, t, s]) => `<button type="button" class="pick-o${st.inst === k ? ' on' : ''}" data-act="inst" data-v="${k}"><b>${t}</b><small>${s}</small></button>`).join('')}</div>
       <p class="small muted">You can change how Crescendo hears you any time in Settings.</p>`;
     if (st.step === 2) return `<h1>How long can you practise?</h1><p class="lead">Pick a routine. Your daily plan fits the time you choose, and you can change any day.</p>
       <div class="chips wrap">${PRESETS.map(([l, w], i) => `<button type="button" class="chip${JSON.stringify(w) === JSON.stringify(st.week) ? ' on' : ''}" data-act="preset" data-i="${i}">${l}</button>`).join('')}</div>
@@ -209,7 +211,7 @@ function startOnboarding() {
   const finish = () => {
     S.name = st.name.trim().slice(0, 40);
     S.prefs.instrument = st.inst;
-    S.prefs.input = st.inst === 'digital' ? 'midi' : 'touch';
+    S.prefs.input = st.inst === 'none' ? 'touch' : st.inst === 'digital' && MIDI_OK ? 'midi' : 'mic';
     S.prefs.terms = st.terms;
     S.week = st.week;
     LESSONS.filter(l => l.u < st.start).forEach(l => { S.lessons[l.id] = { done: today(), at: 0 }; (l.skills || []).forEach(unlockSkill); (l.songs || []).forEach(s => { S.songs[s] = S.songs[s] || { stars: 0, best: 0, plays: 0, last: '', mins: 0 }; }); });
@@ -250,6 +252,8 @@ function checkDay() {
 }
 async function boot() {
   S = load();
+  // Set up for MIDI on a phone that can't use it (iPhone): listen through the microphone instead.
+  if (S.prefs.input === 'midi' && !MIDI_OK) { S.prefs.input = S.prefs.instrument === 'none' ? 'touch' : 'mic'; save(); }
   DAY = today();
   applyPrefs();
   $('#view').addEventListener('click', onViewClick);

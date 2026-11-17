@@ -44,7 +44,7 @@ function runDrill(host, spec, onDone) {
       else if (opts.from) kb.setRange(opts.from, opts.to);
       return kb;
     },
-    input(fn) { if (unsub) unsub(); unsub = onInput(ev => { if (!stopped) fn(ev); }); },
+    input(fn) { if (unsub) unsub(); unsub = onInput(ev => { if (!stopped) fn(ev); }, true); },
     chroma(fn) { const u = onChroma(v => { if (!stopped) fn(v); }); cleanups.push(u); },
     prog() { sh.prog.innerHTML = `<span class="pips">${Array.from({ length: n }, (_, i) => `<i class="${i < res.total ? 'done' : ''}${i === res.total ? ' cur' : ''}"></i>`).join('')}</span>`; },
     // Record an answer; then the next question (or the end) after a moment.
@@ -145,7 +145,6 @@ const DRILLS = {
           noteCard($('.card-note', api.sh.q), { clef: cur.clef, pitch: p, scale: 11, width: 190, label: 'Which note is this?' });
           t0 = performance.now();
           if (playMode) {
-            api.sh.a.innerHTML = `<p class="prompt">${INPUT_HINT()}</p>`;
             api.input(ev => {
               if (ev.type !== 'on' || !cur) return;
               const ok = ev.m === cur.m || (ev.src === 'mic' && mod(ev.m - cur.m, 12) === 0);
@@ -154,6 +153,7 @@ const DRILLS = {
               if (!ok) api.kb().flash(c.m, 'target', 1400);
               api.answer(ok, `nt:${c.clef}:${c.m}`, performance.now() - t0, ok ? null : `${icon('x')} That was ${noteLabel(spell(ev.m))}. This note is <b>${noteLabel(c.p)}</b>.`);
             });
+            api.sh.a.innerHTML = `<p class="prompt">${INPUT_HINT()}</p>`;
           } else {
             const accs = sp.acc ? ['♮', '♯', '♭'] : null;
             api.sh.a.innerHTML = choiceButtons(LETTER_KEYS, 'letters') + (accs ? `<div class="acc-row seg sm">${accs.map((a, i) => `<button type="button" data-acc="${[0, 1, -1][i]}" class="${i === 0 ? 'on' : ''}">${a}</button>`).join('')}</div>` : '');
@@ -371,8 +371,7 @@ const DRILLS = {
           api.sh.a.onclick = e => {
             const b = e.target.closest('[data-rh]');
             if (!b || judging) return;
-            const c = ac();
-            const t0 = c.currentTime + 0.15, beats = parseTime(pat.time).beats, beatSec = spb * parseTime(pat.time).beat;
+            const t0 = audioNow() + 0.15, beats = parseTime(pat.time).beats, beatSec = spb * parseTime(pat.time).beat;
             for (let k = 0; k < beats; k++) click(t0 + k * beatSec, k === 0 ? 0 : 1);
             const start = t0 + beats * beatSec;
             if (b.dataset.rh === 'listen') {
@@ -399,7 +398,7 @@ const DRILLS = {
               const extra = taps.length - used.size;
               const ok = hits === expected.length && extra === 0;
               api.answer(ok, `rh:${sp.level || 1}`, 0, ok ? `${icon('check')} Right in time!` : `${icon('x')} ${hits} of ${expected.length} in time${extra > 0 ? `, ${plural(extra, 'extra tap')}` : ''}. Red notes were missed.`);
-            }, (start - c.currentTime) * 1000 + piece.len * spb * 1000 + 700);
+            }, (start - audioNow()) * 1000 + piece.len * spb * 1000 + 700);
           };
         },
         stop() { document.removeEventListener('keydown', onKey); clearTimeout(tm); },
