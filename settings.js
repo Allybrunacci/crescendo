@@ -169,14 +169,14 @@ function openCalibration() {
   const key = e => { if (e.code === 'Space') { e.preventDefault(); tap(performance.now()); } };
   const un = onInput(ev => { if (ev.type === 'on') tap(ev.at); });
   document.addEventListener('keydown', key);
-  openSheet(`${sheetHead('Tap timing')}<p class="lead">Tap the pad (or a key on your piano) exactly with each click. 12 clicks.</p>
-    <button type="button" class="tap-pad" data-act="pad">TAP</button><p class="cal-res small center"></p>
+  const sheet = openSheet(`${sheetHead('Tap timing')}<p class="lead">Tap the pad${S.prefs.input === 'midi' ? ' (or a key on your keyboard)' : ''} exactly with each click. 12 clicks.</p>
+    <button type="button" class="tap-pad" aria-label="Tap here">TAP</button><p class="cal-res small center"></p>
     <div class="btn-row"><button type="button" class="btn primary" data-act="go">Start</button></div>`, {
     label: 'Tap timing',
     onClose: () => { if (met) met.stop(); un(); document.removeEventListener('keydown', key); },
     act: {
-      pad() { tap(performance.now()); },
       go(a, e, sh) {
+        if (on) return;
         clicks = []; taps = []; on = true;
         met = metronome({ bpm: 90, beats: 4, countIn: 12, onBeat: (b, s, t) => clicks.push(ctxToPerf(t)) });
         setTimeout(() => {
@@ -192,6 +192,11 @@ function openCalibration() {
         }, (12 * 60000) / 90 + 900);
       },
     },
+  });
+  onTapPad($('.tap-pad', sheet.el), t => {
+    tap(t);
+    const p = $('.tap-pad', sheet.el);
+    p.classList.remove('hit'); void p.offsetWidth; p.classList.add('hit');
   });
 }
 

@@ -60,7 +60,7 @@ function runLesson(host, id, opts = {}) {
   const st = S.lessons[id] || { done: '', at: 0 };
   let i = st.done ? 0 : Math.min(st.at || 0, l.cards.length - 1);
   let cleanup = null, answered = false;
-  host.innerHTML = `<div class="lesson-player">
+  host.innerHTML = `<div class="lesson-player${opts.embedded ? ' embedded' : ''}">
     <div class="lp-top">${opts.embedded ? '' : `<button type="button" class="icon-btn" data-lp="exit" aria-label="Close lesson">${icon('close')}</button>`}
       <div class="lp-prog"><div class="bar"><i></i></div><small class="lp-name"></small></div></div>
     <div class="lp-card"></div>

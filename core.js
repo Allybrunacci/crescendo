@@ -1,7 +1,7 @@
 /* Crescendo — core: helpers, saved data, words, rich text, sheets, toasts, router and practice-time tracking */
 'use strict';
 
-const APP_VERSION = '1.0.2';
+const APP_VERSION = '1.0.3';
 const STORE_KEY = 'crescendo:v1';
 
 /* ---------- helpers ---------- */
@@ -15,6 +15,13 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many || one + 's'}`;
 const icon = (id, cls) => `<svg class="ico${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-${id}"/></svg>`;
 const buzz = (ms = 12) => { try { if (navigator.vibrate && S.prefs.fx) navigator.vibrate(ms); } catch (e) { /* not supported */ } };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// When a tap really happened (performance.now() time): the event's own timestamp, if it's on the same clock.
+const tapTime = e => { const now = performance.now(), t = e && e.timeStamp; return t > 0 && t <= now + 5 && now - t < 1000 ? t : now; };
+// A tap pad (Rhythm, Steady beat, Tap timing): counts the moment a finger lands, not when it lifts.
+function onTapPad(el, fn) {
+  if (!el) return;
+  el.addEventListener('pointerdown', e => { if (e.button > 0) return; e.preventDefault(); fn(tapTime(e)); });
+}
 function rng(seed) {
   let a = typeof seed === 'string' ? [...seed].reduce((h, ch) => (Math.imul(h ^ ch.charCodeAt(0), 2654435761) >>> 0), 1779033703) : seed >>> 0;
   return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };

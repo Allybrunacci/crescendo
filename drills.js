@@ -365,6 +365,10 @@ const DRILLS = {
           const w = api.sh.q.clientWidth || 320;
           const sc = drawPiece($('.rh-score', api.sh.q), piece, { width: w, scale: notationScale(w), label: 'Rhythm' });
           api.sh.a.innerHTML = `<div class="rh-btns"><button type="button" class="btn ghost sm" data-rh="listen">${icon('ear')} Listen</button><button type="button" class="btn primary sm" data-rh="go">${icon('metro')} Tap it</button></div><button type="button" class="tap-pad" aria-label="Tap here">TAP</button>`;
+          onTapPad(pad(), t => {
+            if (judging) tapAt(t);
+            else { api.sh.fb.className = 'dr-fb'; api.sh.fb.innerHTML = `${icon('info')} Tap <b>Tap it</b> first, then tap along here after the count-in.`; }
+          });
           const tempo = sp.tempo || 72;
           const spb = 60 / tempo;
           const evs = piece.staves[0].events;
@@ -380,6 +384,7 @@ const DRILLS = {
             }
             for (let k = 0; k < Math.ceil(piece.len / parseTime(pat.time).beat); k++) click(start + k * beatSec, 2);
             expected = evs.filter(ev => !ev.rest && !ev.tied).map(ev => ({ t: ctxToPerf(start + ev.t * spb), i: ev.i }));
+            api.sh.a.dataset.exp = expected.map(x => Math.round(x.t)).join(',');
             taps = [];
             judging = true;
             sc.unmark('done'); sc.unmark('miss');
@@ -417,13 +422,21 @@ const DRILLS = {
       const hit = t => { if (!on) return; taps.push(t); const p = api.sh.a.querySelector('.tap-pad'); if (p) { p.classList.remove('hit'); void p.offsetWidth; p.classList.add('hit'); } };
       return {
         ask(i) {
+          if (metro) metro.stop();
+          metro = null;
+          on = false;
           const bpm = [66, 80, 96][i % 3] + (api.spec.faster ? 10 : 0);
           api.sh.q.innerHTML = `<div class="beat-big"><b>${bpm}</b> beats a minute</div><p class="prompt">Tap along with the clicks. 4 to listen, then 8 to tap.</p><div class="beat-dots">${Array.from({ length: 12 }, () => '<i></i>').join('')}</div>`;
           api.sh.a.innerHTML = `<button type="button" class="btn primary sm" data-go>${icon('metro')} Start</button><button type="button" class="tap-pad" aria-label="Tap here">TAP</button>`;
+          onTapPad(api.sh.a.querySelector('.tap-pad'), t => {
+            if (on) hit(t);
+            else if (!metro) { api.sh.fb.className = 'dr-fb'; api.sh.fb.innerHTML = `${icon('info')} Tap <b>Start</b> first: listen to 4 clicks, then tap along here.`; }
+          });
           api.sh.a.querySelector('[data-go]').onclick = () => {
+            if (metro) return;
             taps = []; clicks = [];
             const dots = $$('.beat-dots i', api.sh.q);
-            metro = metronome({ bpm, beats: 4, countIn: 12, onBeat: (b, s, t) => { if (dots[b]) dots[b].className = b < 4 ? 'cnt' : 'on'; if (b >= 4) clicks.push(ctxToPerf(t)); if (b === 3) on = true; }, onDone: () => {} });
+            metro = metronome({ bpm, beats: 4, countIn: 12, onBeat: (b, s, t) => { if (dots[b]) dots[b].className = b < 4 ? 'cnt' : 'on'; if (b === 0) api.sh.a.dataset.beat0 = Math.round(ctxToPerf(t)); if (b >= 4) clicks.push(ctxToPerf(t)); if (b === 3) on = true; }, onDone: () => {} });
             api.input(ev => { if (ev.type === 'on') hit(ev.at); });
             tm = setTimeout(() => {
               on = false;

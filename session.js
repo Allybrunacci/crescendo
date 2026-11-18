@@ -106,6 +106,13 @@ function freePlay(host) {
 }
 
 /* ---------- the session screen ---------- */
+// The session's main button. During a lesson that isn't finished it's a quieter "Skip lesson", so it isn't mistaken
+// for the lesson's own Next.
+function nextBtn(p, i) {
+  const b = p.blocks[i], last = i === p.blocks.length - 1;
+  if (b.k === 'lesson' && !p.done[b.id] && !lessonDone(b.ref)) return `<button type="button" class="btn ghost grow" data-act="next">Skip lesson ${icon('chev-r')}</button>`;
+  return `<button type="button" class="btn primary grow" data-act="next">${last ? `${icon('check')} Finish session` : `Done · next ${icon('chev-r')}`}</button>`;
+}
 VIEWS.session = {
   title: 'Practice',
   stage: () => true,
@@ -119,8 +126,8 @@ VIEWS.session = {
         <b class="ss-title">${esc(tt.t)}</b></div>
         <div class="ss-timer" role="timer" aria-label="Time on this activity"><span class="tm">0:00</span><small>/ ${b.mins} min</small></div></header>
       <div class="ss-body"></div>
-      <footer class="ss-foot"><button type="button" class="btn ghost" data-act="prev" ${i === 0 ? 'disabled' : ''}>${icon('chev-l')}</button>
-        <button type="button" class="btn primary grow" data-act="next">${i === p.blocks.length - 1 ? `${icon('check')} Finish session` : `Done · next ${icon('chev-r')}`}</button></footer></div>`;
+      <footer class="ss-foot"><button type="button" class="btn ghost" data-act="prev" ${i === 0 ? 'disabled' : ''} aria-label="Previous activity">${icon('chev-l')}</button>
+        ${nextBtn(p, i)}</footer></div>`;
   },
   after(view, param) {
     const p = planFor(today());
@@ -152,7 +159,7 @@ VIEWS.session = {
     let result = null;
     const clean = runBlock($('.ss-body', view), b, {
       result: res => { result = res; },
-      finished: () => { p.done[b.id] = Math.max(1, Math.round((performance.now() - t0) / 60000)); save(); const nx = $('[data-act="next"]', view); if (nx) nx.classList.add('pulse'); },
+      finished: () => { p.done[b.id] = Math.max(1, Math.round((performance.now() - t0) / 60000)); save(); const nx = $('[data-act="next"]', view); if (nx) { nx.outerHTML = nextBtn(p, i); $('[data-act="next"]', view).classList.add('pulse'); } },
     });
     VIEWS.session._mark = () => { p.done[b.id] = Math.max(1, Math.round((performance.now() - t0 - paused) / 60000)); };
     return () => { clearInterval(timer); document.removeEventListener('visibilitychange', vis); if (clean) clean(); };

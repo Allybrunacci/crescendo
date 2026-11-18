@@ -170,6 +170,9 @@ details.unit summary::-webkit-details-marker { display: none; }
 .lp-card > h2 { margin-bottom: 10px; }
 .lp-foot { position: sticky; bottom: 0; margin-top: auto; display: flex; justify-content: space-between; gap: 10px; padding: 14px 0 calc(var(--safe-b) + 8px); background: linear-gradient(transparent, var(--paper) 30%); }
 .lp-foot .btn.primary { flex: 1; max-width: 320px; margin-left: auto; }
+/* Inside a practice session the session's own bar is pinned at the bottom, so the lesson's buttons sit under the card. */
+.lesson-player.embedded { min-height: 0; }
+.lesson-player.embedded .lp-foot { position: static; background: none; padding: 14px 0 6px; }
 .prose p, .prose ul { margin: 0 0 10px; font-size: 16.5px; color: var(--ink-2); }
 .prose ul { padding-left: 20px; } .prose li { margin: 4px 0; }
 .prose b { color: var(--ink); }
@@ -281,7 +284,7 @@ h2.q { font-family: var(--f-ui); font-weight: 800; font-size: 20px; margin: 8px 
 .listen-btn .ico { width: 34px; height: 34px; }
 .echo-dots { display: flex; gap: 8px; justify-content: center; margin-top: 10px; } .echo-dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--paper-2); } .echo-dots i.ok { background: var(--ok); } .echo-dots i.bad { background: var(--bad); }
 .rh-score { overflow-x: auto; } .rh-btns { display: flex; gap: 8px; justify-content: center; }
-.tap-pad { display: block; width: 100%; max-width: 360px; height: 120px; margin: 12px auto 0; border-radius: 24px; border: 2px dashed var(--line); background: var(--paper); font: 800 22px var(--f-ui); letter-spacing: .2em; color: var(--ink-3); touch-action: manipulation; user-select: none; }
+.tap-pad { display: block; width: 100%; max-width: 360px; height: 120px; margin: 12px auto 0; border-radius: 24px; border: 2px dashed var(--line); background: var(--paper); font: 800 22px var(--f-ui); letter-spacing: .2em; color: var(--ink-3); touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .tap-pad.hit { animation: hit .18s ease; }
 @keyframes hit { 0% { background: var(--brass-l); transform: scale(.97); } 100% { background: var(--paper); transform: none; } }
 .beat-big b { font-family: var(--f-head); font-size: 44px; } .beat-dots { display: flex; gap: 6px; justify-content: center; margin-top: 10px; } .beat-dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--paper-2); } .beat-dots i.cnt { background: var(--ink-3); } .beat-dots i.on { background: var(--brass); }
