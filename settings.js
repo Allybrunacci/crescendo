@@ -265,6 +265,20 @@ function checkDay() {
   DAY = t;
   if (!SHEET && UI.cur === 'today') render();
 }
+// Phones often bring the app back from memory instead of reloading it, so a fix wouldn't arrive until the app was
+// fully closed. When Crescendo comes back on screen it checks for a newer version, and reloads, but never in the
+// middle of a lesson or practice session: then it waits until you're back on a main screen.
+let UPDATE_READY = false, lastUpdateCheck = 0;
+const busy = () => document.body.classList.contains('stage') || !!SHEET;
+async function checkForUpdate() {
+  if (UPDATE_READY || !/^https?:$/.test(location.protocol) || /[?&]nosw/.test(location.search) || Date.now() - lastUpdateCheck < 60000) return;
+  lastUpdateCheck = Date.now();
+  try {
+    const r = await fetch('core.js', { cache: 'no-store' });
+    const m = /APP_VERSION = '([^']+)'/.exec(r.ok ? await r.text() : '');
+    if (m && m[1] !== APP_VERSION) { UPDATE_READY = true; if (!busy()) location.reload(); }
+  } catch (e) { /* offline: try again later */ }
+}
 async function boot() {
   S = load();
   // Set up for MIDI on a phone that can't use it (iPhone): listen through the microphone instead.
@@ -274,8 +288,8 @@ async function boot() {
   $('#view').addEventListener('click', onViewClick);
   document.addEventListener('click', e => { const a = e.target.closest('[data-action="settings"]'); if (a) { e.preventDefault(); openSettings(); } });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && SHEET) closeSheet(); });
-  window.addEventListener('hashchange', () => { closeSheet(true); render(true); });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDay(); });
+  window.addEventListener('hashchange', () => { closeSheet(true); render(true); if (UPDATE_READY && !busy()) location.reload(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkDay(); checkForUpdate(); } });
   setInterval(checkDay, 30000);
   window.addEventListener('storage', e => { if (e.key === STORE_KEY && !TRACK.kind) { S = load(); if (!SHEET) render(); } });
   try { await Promise.race([Promise.all([document.fonts.load('40px "Crescendo Notation"'), document.fonts.load('16px Figtree')]), sleep(2500)]); } catch (e) { /* fonts are optional */ }

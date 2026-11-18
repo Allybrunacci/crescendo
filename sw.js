@@ -1,6 +1,6 @@
 /* Crescendo — offline support. Network first so updates show straight away; the cache is the fallback.
    Only touches its own caches and its own folder, so other apps on the same site are unaffected. */
-const CACHE = 'crescendo-v4';
+const CACHE = 'crescendo-v5';
 const SHELL = [
   './', './index.html', './app.css', './music.js', './audio.js', './listen.js', './input.js', './core.js', './notation.js', './keyboard.js', './player.js',
   './drills.js', './lessons.js', './lessons2.js', './songs.js', './library.js', './planner.js', './learn.js', './session.js', './practice.js',
@@ -24,7 +24,8 @@ self.addEventListener('activate', e => {
 function network(req, ms) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('timeout')), ms);
-    fetch(req).then(res => { clearTimeout(timer); resolve(res); }, err => { clearTimeout(timer); reject(err); });
+    // Always ask the server (a quick "not modified" when nothing changed), so an update is never held back by the browser's cache.
+    fetch(req, { cache: 'no-cache' }).then(res => { clearTimeout(timer); resolve(res); }, err => { clearTimeout(timer); reject(err); });
   });
 }
 

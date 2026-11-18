@@ -1,7 +1,7 @@
 /* Crescendo — core: helpers, saved data, words, rich text, sheets, toasts, router and practice-time tracking */
 'use strict';
 
-const APP_VERSION = '1.0.3';
+const APP_VERSION = '1.0.4';
 const STORE_KEY = 'crescendo:v1';
 
 /* ---------- helpers ---------- */
