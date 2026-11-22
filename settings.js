@@ -84,7 +84,9 @@ function openSettings() {
   };
   const tpl = () => `${sheetHead('Settings', `Crescendo ${APP_VERSION}`)}
     <div class="set-group"><h3>You</h3><div class="card pad"><label class="field"><span>Your name</span><input class="input" name="name" maxlength="40" value="${esc(S.name)}" placeholder="For a friendly hello" autocomplete="given-name"></label></div></div>
-    <div class="set-group"><h3>Practice time</h3><div class="card pad"><p class="small muted">Minutes for each day. Your daily plan is built around them.</p>${weekEditor(S.week)}<p class="small pace">${paceLine(S.week)}</p></div></div>
+    <div class="set-group"><h3>Practice time</h3><div class="card pad"><p class="small muted">Minutes for each day. Your daily plan is built around them.</p>${weekEditor(S.week)}<p class="small pace">${paceLine(S.week)}</p>
+      <h4>Usually away from the piano on</h4><p class="small muted">On these days your plan is theory you can do anywhere. You can still switch on the day.</p>
+      <div class="chips away-days" role="group" aria-label="Usually away from the piano">${WEEK_ORDER.map(d => `<button type="button" class="chip${S.awayWeek[d] ? ' on' : ''}" aria-pressed="${!!S.awayWeek[d]}" data-act="awayday" data-d="${d}">${WD[d]}</button>`).join('')}</div></div></div>
     <div class="set-group"><h3>Your piano</h3><div class="card pad">
       <div class="seg sm" role="radiogroup" aria-label="Instrument">${[['acoustic', 'Acoustic'], ['digital', 'Digital / keyboard'], ['none', 'None yet']].map(([k, l]) => `<button type="button" role="radio" aria-checked="${S.prefs.instrument === k}" class="${S.prefs.instrument === k ? 'on' : ''}" data-act="inst" data-v="${k}">${l}</button>`).join('')}</div>
       <h4>How Crescendo hears you</h4><div class="input-pick">${inputRow()}</div></div></div>
@@ -125,6 +127,7 @@ function openSettings() {
     onClose: () => { clearInterval(micTimer); if (unChord) unChord(); if (MIC.manual) { MIC.manual = false; if (!IN.ears) micStop(); } save(); render(); },
     act: {
       wk(a, e, s) { const d = +a.dataset.d; S.week[d] = clamp(S.week[d] + +a.dataset.v, 0, 120); save(); s.set(tpl()); },
+      awayday(a, e, s) { const d = +a.dataset.d; S.awayWeek[d] = !S.awayWeek[d]; save(); s.set(tpl()); },
       inst(a, e, s) { S.prefs.instrument = a.dataset.v; save(); s.set(tpl()); },
       async input(a, e, s) { S.prefs.input = a.dataset.v; if (a.dataset.v !== 'mic' && IN.mic.on) micStop(); if (a.dataset.v === 'midi') await midiConnect(); save(); s.set(tpl()); },
       async midi(a, e, s) { await midiConnect(); s.set(tpl()); },

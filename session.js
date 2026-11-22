@@ -19,6 +19,15 @@ function runBlock(host, b, ctx) {
     const ctl = runLesson(host, b.ref, { embedded: true, onDone: () => ctx.finished() });
     return () => ctl.stop();
   }
+  if (b.k === 'study') {
+    const ctl = runStudy(host, b.ref, { embedded: true, onDone: () => ctx.finished() });
+    return () => ctl.stop();
+  }
+  if (b.k === 'tdrill') {
+    const td = THEORY_DRILLS[b.ref] || THEORY_DRILLS.terms;
+    return drill({ ...td.spec(r), title: td.name, count: 8 });
+  }
+  if (b.k === 'score') return scoreStudy(host, b.ref);
   if (b.k === 'song') {
     const s = SONG_BY_ID[b.ref];
     if (!s) { host.innerHTML = '<p class="muted">Song not found.</p>'; return null; }
@@ -53,7 +62,7 @@ function runBlock(host, b, ctx) {
   }
   if (b.k === 'read') {
     const rs = readRanges();
-    return drill({ k: 'read', ranges: rs, acc: hasSkill('sharps') && r() < 0.4, flats: true, answer: readMode(), count: 12, skill: skillIds('read').slice(-1)[0] });
+    return drill({ k: 'read', ranges: rs, acc: hasSkill('sharps') && r() < 0.4, flats: true, answer: ctx.away ? 'letters' : readMode(), count: 12, skill: skillIds('read').slice(-1)[0] });
   }
   if (b.k === 'keys') return drill(hasSkill('keynames') ? { k: 'findkey', middleC: true, count: 10, skill: 'keynames' } : { k: 'group', count: 6, skill: 'groups' });
   if (b.k === 'rhythm') {
@@ -111,6 +120,7 @@ function freePlay(host) {
 function nextBtn(p, i) {
   const b = p.blocks[i], last = i === p.blocks.length - 1;
   if (b.k === 'lesson' && !p.done[b.id] && !lessonDone(b.ref)) return `<button type="button" class="btn ghost grow" data-act="next">Skip lesson ${icon('chev-r')}</button>`;
+  if (b.k === 'study' && !p.done[b.id]) return `<button type="button" class="btn ghost grow" data-act="next">Skip study ${icon('chev-r')}</button>`;
   return `<button type="button" class="btn primary grow" data-act="next">${last ? `${icon('check')} Finish session` : `Done · next ${icon('chev-r')}`}</button>`;
 }
 VIEWS.session = {
@@ -158,6 +168,7 @@ VIEWS.session = {
     trackStart(b.k, b.ref);
     let result = null;
     const clean = runBlock($('.ss-body', view), b, {
+      away: !!p.away,
       result: res => { result = res; },
       finished: () => { p.done[b.id] = Math.max(1, Math.round((performance.now() - t0) / 60000)); save(); const nx = $('[data-act="next"]', view); if (nx) { nx.outerHTML = nextBtn(p, i); $('[data-act="next"]', view).classList.add('pulse'); } },
     });
@@ -176,6 +187,7 @@ VIEWS.session = {
       else {
         const lg = S.log[today()] || (S.log[today()] = { mins: 0, parts: {}, sessions: 0, feel: 0, note: '' });
         lg.sessions++;
+        if (p.away) award('away1');
         checkBadges();
         save();
         go('#/session/end');
@@ -188,8 +200,8 @@ function sessionSummary(p) {
   const doneN = p.blocks.filter(b => p.done[b.id]).length;
   setTimeout(() => confetti(36), 300);
   return `<div class="summary">
-    <div class="sum-top"><div class="sum-badge">${icon('trophy')}</div><h1>Session complete</h1><p class="lead">${fmtMins(lg.mins)} today · ${doneN} of ${p.blocks.length} activities</p></div>
-    <div class="sum-stats"><div><b>${st.cur}</b><small>day streak</small></div><div><b>${fmtMins(totalMins())}</b><small>all time</small></div><div><b>${LESSONS.filter(l => lessonDone(l.id)).length}</b><small>lessons done</small></div></div>
+    <div class="sum-top"><div class="sum-badge">${icon(p.away ? 'pencil' : 'trophy')}</div><h1>${p.away ? 'Away session complete' : 'Session complete'}</h1><p class="lead">${fmtMins(lg.mins)} today · ${doneN} of ${p.blocks.length} activities</p></div>
+    <div class="sum-stats"><div><b>${st.cur}</b><small>day streak</small></div><div><b>${fmtMins(totalMins())}</b><small>all time</small></div>${p.away ? `<div><b>${studiesDone()}</b><small>theory studies</small></div>` : `<div><b>${LESSONS.filter(l => lessonDone(l.id)).length}</b><small>lessons done</small></div>`}</div>
     <div class="card"><h3>How did it feel?</h3><div class="feel">${[[1, '😣', 'Tough'], [2, '🙂', 'Good'], [3, '🤩', 'Great']].map(([n, e, l]) => `<button type="button" class="chip${lg.feel === n ? ' on' : ''}" data-feel="${n}"><span>${e}</span> ${l}</button>`).join('')}</div>
       <label class="field"><span>Practice note <small class="muted">(optional)</small></span><textarea id="sess-note" rows="2" maxlength="500" placeholder="What went well? What to work on next time?">${esc(lg.note || '')}</textarea></label></div>
     <div class="btn-row"><a class="btn primary" href="#/today">${icon('home')} Back to Today</a></div></div>`;

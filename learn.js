@@ -26,7 +26,7 @@ VIEWS.learn = {
     if (param && LESSON_BY_ID[param]) return `<div class="stage-wrap"><div id="lesson-host"></div></div>`;
     const nl = nextLesson(), proj = projection();
     const doneN = LESSONS.filter(l => lessonDone(l.id)).length;
-    let html = `<section class="page-head"><h1>Learn</h1><p class="muted">${doneN} of ${LESSONS.length} lessons done${nl ? ` · next up: ${esc(nl.title)}` : ' · course complete!'}</p>
+    let html = `<section class="page-head"><h1>Learn</h1>${typeof learnTabs === 'function' ? learnTabs('lessons') : ''}<p class="muted">${doneN} of ${LESSONS.length} lessons done${nl ? ` · next up: ${esc(nl.title)}` : ' · course complete!'}</p>
       <div class="bar big"><i style="width:${Math.round((doneN / LESSONS.length) * 100)}%"></i></div></section>`;
     UNITS.forEach((u, ui) => {
       const ls = LESSONS.filter(l => l.u === u.n), d = ls.filter(l => lessonDone(l.id)).length;
@@ -159,7 +159,7 @@ function renderCard(el, c, l, onAnswered) {
   }
   if (c.t === 'quiz') {
     el.innerHTML = `<span class="tip-badge q">${icon('help')} Quick question</span>${c.staff ? '<div class="staff-host"></div>' : ''}<h2 class="q">${rich(c.q)}</h2>${choiceButtons(c.opts.map(o => rich(o)))}<div class="dr-fb" role="status"></div>`;
-    if (c.staff) { const pc = parsePiece({ music: c.staff, time: c.time || '4/4' }); drawPiece($('.staff-host', el), pc, { width: Math.min(260, w()), scale: 10, label: 'Example' }); }
+    if (c.staff) { const pc = parsePiece({ music: c.staff, time: c.time || '4/4', clef: c.clef || 'treble', key: c.key }); drawPiece($('.staff-host', el), pc, { width: Math.min(260, w()), scale: 10, label: 'Example' }); }
     $('.choices', el).onclick = e => {
       const b = e.target.closest('[data-c]');
       if (!b || el.dataset.locked) return;
@@ -191,6 +191,10 @@ function renderCard(el, c, l, onAnswered) {
   }
   if (c.t === 'do') {
     el.innerHTML = `<span class="tip-badge do">${icon('piano')} At your piano</span>${head}<ul class="do-list">${c.steps.map((s, j) => `<li><label><input type="checkbox" data-j="${j}"><span>${rich(s)}</span></label></li>`).join('')}</ul>`;
+    return null;
+  }
+  if (c.t === 'task') {
+    el.innerHTML = `<span class="tip-badge task">${icon('pencil')} Away from the piano</span>${head}<ol class="do-list task-list">${c.steps.map((s, j) => `<li><label><input type="checkbox" data-j="${j}"><span>${rich(s)}</span></label></li>`).join('')}</ol>`;
     return null;
   }
   el.innerHTML = head + body;

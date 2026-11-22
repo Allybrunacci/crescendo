@@ -204,4 +204,7 @@ const BADGES = [
   { id: 'songs5', e: '🎶', name: 'Five songs', about: 'Earn three stars on five songs.' },
   { id: 'reader50', e: '⚡', name: 'Sharp eyes', about: 'Name 50 notes correctly.' },
   { id: 'perfect', e: '⭐', name: 'Flawless', about: 'Score 100% on a play-along.' },
+  { id: 'away1', e: '✏️', name: 'Practise anywhere', about: 'Finish a practice session away from the piano.' },
+  { id: 'theory5', e: '🧠', name: 'Theory explorer', about: 'Complete five theory studies.' },
+  { id: 'theory20', e: '📚', name: 'Theory scholar', about: 'Complete twenty theory studies.' },
 ];

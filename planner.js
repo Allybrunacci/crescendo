@@ -13,8 +13,9 @@ const BLOCK_INFO = {
   keys: { name: 'Keyboard map', icon: 'keys' }, rhythm: { name: 'Rhythm', icon: 'metro' }, ear: { name: 'Ear training', icon: 'ear' },
   chords: { name: 'Chords', icon: 'chord' }, scales: { name: 'Scales', icon: 'scale' }, review: { name: 'Quick review', icon: 'redo' },
   sight: { name: 'Sight-reading', icon: 'eye' }, song: { name: 'Song', icon: 'note' }, free: { name: 'Free play', icon: 'spark' },
+  study: { name: 'Theory study', icon: 'pencil' }, tdrill: { name: 'Theory drill', icon: 'abc' }, score: { name: 'Song study', icon: 'eye' },
 };
-const ORDER = ['warmup', 'lesson', 'keys', 'read', 'rhythm', 'ear', 'chords', 'scales', 'sight', 'review', 'song', 'free'];
+const ORDER = ['warmup', 'lesson', 'study', 'keys', 'read', 'rhythm', 'ear', 'chords', 'tdrill', 'scales', 'sight', 'review', 'score', 'song', 'free'];
 
 // The song to focus on: newest one without three stars, else the one played least recently.
 function focusSong(list, avoid) {
@@ -77,10 +78,10 @@ function candidates(d, M) {
   return out.sort((a, b) => a.pri - b.pri);
 }
 
-// Picks blocks that fit in M minutes, then shares out the spare time by weight.
-function buildPlan(d, M) {
-  if (M <= 0) return { m: 0, blocks: [], done: {}, v: 2 };
-  const cands = candidates(d, M);
+// Picks blocks that fit in M minutes, then shares out the spare time by weight. Away days use theory blocks only.
+function buildPlan(d, M, away) {
+  if (M <= 0) return { m: 0, blocks: [], done: {}, v: 2, away: !!away };
+  const cands = away ? awayCandidates(d, M) : candidates(d, M);
   const chosen = [];
   let used = 0;
   for (const c of cands) {
@@ -104,17 +105,17 @@ function buildPlan(d, M) {
   for (let k = byFrac.length - 1; diff < 0; k = (k - 1 + byFrac.length) % byFrac.length) if (floors[byFrac[k][1]] > 1) { floors[byFrac[k][1]]--; diff++; }
   const blocks = chosen.map((c, i) => ({ id: `${c.k}${i}`, k: c.k, ref: c.ref || '', mins: floors[i] }))
     .sort((a, b) => ORDER.indexOf(a.k) - ORDER.indexOf(b.k) || a.id.localeCompare(b.id));
-  return { m: M, blocks, done: {}, v: 2 };
+  return { m: M, blocks, done: {}, v: 2, away: !!away };
 }
-// Today's plan stays put through the day; it's rebuilt if the minutes change.
+// Today's plan stays put through the day; it's rebuilt if the minutes change. At the piano and away have a plan each.
 function planFor(d) {
-  const M = plannedFor(d);
-  let p = S.plans[d];
+  const M = plannedFor(d), away = isAway(d), store = away ? S.aplans : S.plans;
+  let p = store[d];
   if (!p || p.m !== M || p.v !== 2) {
     const done = p ? p.done : {};
-    p = buildPlan(d, M);
+    p = buildPlan(d, M, away);
     p.blocks.forEach(b => { if (done[b.id]) p.done[b.id] = done[b.id]; });
-    S.plans[d] = p;
+    store[d] = p;
   }
   p.blocks.forEach(b => { if (b.k === 'lesson' && lessonDone(b.ref) && !p.done[b.id]) p.done[b.id] = 1; });
   return p;
@@ -126,10 +127,13 @@ function blockTitle(b) {
   if (b.k === 'warmup') { const w = WARMUPS[b.ref]; return { t: 'Warm-up', s: w ? w.name : '' }; }
   if (b.k === 'scales') return { t: 'Scales', s: b.ref };
   if (b.k === 'chords') { const p = PROGRESSIONS.find(x => x.id === b.ref); return { t: 'Chords', s: p ? `${p.nick}: ${p.name}` : 'Build chords' }; }
-  if (b.k === 'ear') { const sk = SKILLS[b.ref]; return { t: 'Ear training', s: sk ? sk.name : '' }; }
+  if (b.k === 'ear') { const sk = SKILLS[b.ref]; return { t: 'Ear training', s: sk ? sk.name : 'High or low' }; }
   if (b.k === 'read') return { t: 'Note reading', s: readRanges().map(([c, a, z]) => `${cap(c)} ${pretty(a.replace(/\d/, ''))}–${pretty(z.replace(/\d/, ''))}`).join(', ') };
   if (b.k === 'rhythm') return { t: 'Rhythm', s: hasSkill('rhythm1') ? 'Read and tap' : 'Feel the beat' };
   if (b.k === 'free') return { t: 'Free play', s: hasSkill('improv') ? 'Improvise' : 'Explore and enjoy' };
+  if (b.k === 'study') { const st = typeof STUDY_BY_ID !== 'undefined' && STUDY_BY_ID[b.ref]; return st ? { t: T(st.title), s: `Theory ${studyNo(st)}${studyDone(st.id) ? ' · refresher' : ''}` } : { t: bi.name, s: '' }; }
+  if (b.k === 'tdrill') { const td = THEORY_DRILLS[b.ref]; return { t: 'Theory drill', s: td ? td.name : '' }; }
+  if (b.k === 'score') { const s = SONG_BY_ID[b.ref]; return { t: 'Song study', s: s ? `${s.title} · learn it in your head` : '' }; }
   return { t: bi.name, s: '' };
 }
 function readRanges() {
@@ -147,6 +151,7 @@ function readRanges() {
 function reviewQuestions() {
   const qs = [];
   LESSONS.forEach(l => { if (lessonDone(l.id)) l.cards.forEach(c => { if (c.t === 'quiz') qs.push(c); }); });
+  if (typeof STUDIES !== 'undefined') STUDIES.forEach(st => { if (studyDone(st.id)) st.cards.forEach(c => { if (c.t === 'quiz') qs.push(c); }); });
   return qs;
 }
 
@@ -180,6 +185,9 @@ function checkBadges() {
   if (Object.values(S.songs).filter(s => s.stars >= 3).length >= 5) award('songs5');
   const read = Object.entries(S.stats).filter(([k]) => k.startsWith('nt:')).reduce((a, [, v]) => a + v[1], 0);
   if (read >= 50) award('reader50');
+  const th = typeof studiesDone === 'function' ? studiesDone() : 0;
+  if (th >= 5) award('theory5');
+  if (th >= 20) award('theory20');
 }
 let lastLogSave = 0;
 function onPracticeTime() { if (Date.now() - lastLogSave > 20000) { lastLogSave = Date.now(); checkBadges(); } }
@@ -208,24 +216,26 @@ function weekStrip() {
 VIEWS.today = {
   title: 'Today',
   render() {
-    const t = today(), p = planFor(t), M = p.m, done = minsOn(t);
+    const t = today(), p = planFor(t), M = p.m, done = minsOn(t), away = !!p.away;
     const st = streakInfo();
     const nl = nextLesson();
     const left = p.blocks.filter(b => !p.done[b.id]);
     const allDone = p.blocks.length && !left.length;
     const tip = TIPS[daysBetween('2026-01-01', t) % TIPS.length];
     let html = `<section class="hello"><div><p class="eyebrow">${fmtDay(t)}</p><h1>${greeting()}</h1></div>
-      <div class="streak${st.cur ? ' on' : ''}" title="Best: ${st.best} days">${icon('flame')}<b>${st.cur}</b><small>day${st.cur === 1 ? '' : 's'}</small></div></section>`;
+      <div class="streak${st.cur ? ' on' : ''}" title="Best: ${st.best} days">${icon('flame')}<b>${st.cur}</b><small>day${st.cur === 1 ? '' : 's'}</small></div></section>
+      <div class="seg where" role="radiogroup" aria-label="Where are you practising today?">${[['piano', 'piano', 'At the piano'], ['away', 'pencil', 'Away from the piano']].map(([k, ic, l]) => `<button type="button" role="radio" aria-checked="${away === (k === 'away')}" class="${away === (k === 'away') ? 'on' : ''}" data-act="where" data-v="${k}">${icon(ic)}<span>${l}</span></button>`).join('')}</div>`;
     if (!M) {
       html += `<section class="card hero rest"><div><h2>Rest day</h2><p>No practice planned today. Rest helps your brain lock in what you’ve learned.</p>
         <p class="small">Fancy a quick one anyway?</p><div class="chips">${[5, 10, 15, 20].map(m => `<button type="button" class="chip" data-act="mins" data-m="${m}">${m} min</button>`).join('')}</div></div></section>`;
     } else {
       const pct = Math.min(1, done / M);
-      html += `<section class="card hero"><div class="hero-ring">${ring(pct)}<div class="hero-num"><b>${Math.floor(done)}</b><small>of ${M} min</small></div></div>
-        <div class="hero-txt"><h2>${allDone ? 'Practice done!' : done > 0.5 ? 'Keep going' : 'Today’s practice'}</h2>
-        <p>${allDone ? 'Brilliant work. Anything extra is a bonus.' : `${plural(p.blocks.length, 'activity', 'activities')} · ${fmtMins(M)}`}</p>
+      html += `<section class="card hero${away ? ' away' : ''}"><div class="hero-ring">${ring(pct)}<div class="hero-num"><b>${Math.floor(done)}</b><small>of ${M} min</small></div></div>
+        <div class="hero-txt"><h2>${allDone ? 'Practice done!' : done > 0.5 ? 'Keep going' : away ? 'Theory practice' : 'Today’s practice'}</h2>
+        <p>${allDone ? (away ? 'Brilliant. Back at the piano later? Switch to <b>At the piano</b> for some playing.' : 'Brilliant work. Anything extra is a bonus.') : `${plural(p.blocks.length, 'activity', 'activities')} · ${fmtMins(M)}${away ? ' · no piano needed' : ''}`}</p>
         <div class="btn-row"><button type="button" class="btn primary" data-act="start">${icon(allDone ? 'redo' : 'play')} ${allDone ? 'Practise more' : done > 0.5 ? 'Continue' : 'Start'}</button>
         <button type="button" class="btn ghost sm" data-act="change">${icon('clock')} ${M} min</button></div></div></section>`;
+      if (away && !allDone && p.blocks.some(b => ['ear', 'tdrill', 'score'].includes(b.k))) html += `<p class="small muted away-note">${icon('headphones')} Some parts play sounds, so headphones help if you’re out and about.</p>`;
       html += `<section class="plan"><h3 class="sec">Your plan</h3><ol class="blocks">${p.blocks.map((b, i) => {
         const tt = blockTitle(b), ok = !!p.done[b.id];
         return `<li><button type="button" class="block${ok ? ' done' : ''}" data-act="block" data-i="${i}">
@@ -234,7 +244,12 @@ VIEWS.today = {
       }).join('')}</ol></section>`;
     }
     html += `<section class="card"><div class="row-head"><h3>This week</h3><span class="small muted">${fmtMins(sum(Array.from({ length: 7 }, (_, i) => minsOn(addDays(weekStartOf(t), i)))))} of ${fmtMins(sum(Array.from({ length: 7 }, (_, i) => plannedFor(addDays(weekStartOf(t), i)))))}</span></div>${weekStrip()}</section>`;
-    if (nl) {
+    const ns = away && typeof nextStudy === 'function' ? nextStudy() : null;
+    if (ns) {
+      const inUnit = STUDIES.filter(s => s.u === ns.u), doneIn = inUnit.filter(s => studyDone(s.id)).length;
+      html += `<a class="card next-lesson" href="#/theory/${ns.id}"><div><p class="eyebrow">Up next in theory · Unit ${ns.u}: ${esc(UNITS[ns.u - 1].title)}</p><h3>${esc(T(ns.title))}</h3>
+        <div class="bar"><i style="width:${Math.round((doneIn / inUnit.length) * 100)}%"></i></div><p class="small muted">${doneIn} of ${inUnit.length} theory studies in this unit · ${ns.mins} min</p></div>${icon('chev-r')}</a>`;
+    } else if (nl) {
       const u = UNITS[nl.u - 1], inUnit = LESSONS.filter(l => l.u === nl.u), doneIn = inUnit.filter(l => lessonDone(l.id)).length;
       html += `<a class="card next-lesson" href="#/learn/${nl.id}"><div><p class="eyebrow">Up next · Unit ${u.n}: ${esc(u.title)}</p><h3>${esc(nl.title)}</h3>
         <div class="bar"><i style="width:${Math.round((doneIn / inUnit.length) * 100)}%"></i></div><p class="small muted">${doneIn} of ${inUnit.length} lessons in this unit${lessonReady(nl) ? '' : ' · it joins your plan after a little more practice, or start it now'}</p></div>${icon('chev-r')}</a>`;
@@ -251,6 +266,13 @@ VIEWS.today = {
     block(a) { go(`#/session/${a.dataset.i}`); },
     change() { openMinutesSheet(today()); },
     mins(a) { S.over[today()] = +a.dataset.m; save(); render(); },
+    where(a) {
+      const away = a.dataset.v === 'away';
+      if (isAway(today()) === away) return;
+      setAway(today(), away);
+      render();
+      toast(away ? `${icon('pencil')} Today’s plan is theory you can do anywhere` : `${icon('piano')} Today’s plan is back at the piano`);
+    },
   },
 };
 function openMinutesSheet(d) {

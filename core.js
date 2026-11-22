@@ -1,7 +1,7 @@
 /* Crescendo — core: helpers, saved data, words, rich text, sheets, toasts, router and practice-time tracking */
 'use strict';
 
-const APP_VERSION = '1.0.4';
+const APP_VERSION = '1.1.0';
 const STORE_KEY = 'crescendo:v1';
 
 /* ---------- helpers ---------- */
@@ -66,6 +66,7 @@ function freshState() {
     log: {},
     plans: {},
     badges: {},
+    away: {}, awayWeek: [false, false, false, false, false, false, false], aplans: {}, theory: {},
     savedAt: 0,
   };
 }
@@ -99,6 +100,11 @@ function migrate(d) {
   for (const [k, v] of Object.entries(obj(d.log))) if (isKey(k) && v && typeof v === 'object') s.log[k] = { mins: Math.max(0, +v.mins || 0), parts: obj(v.parts), sessions: +v.sessions || 0, feel: +v.feel || 0, note: String(v.note || '').slice(0, 500) };
   for (const [k, v] of Object.entries(obj(d.plans))) if (isKey(k) && v && Array.isArray(v.blocks)) s.plans[k] = v;
   for (const [k, v] of Object.entries(obj(d.badges))) if (isKey(v)) s.badges[k] = v;
+  // Away from the piano (1.1): days you're away, your usual away days, away plans and theory studies.
+  for (const [k, v] of Object.entries(obj(d.away))) if (isKey(k)) s.away[k] = v ? 1 : 0;
+  if (Array.isArray(d.awayWeek) && d.awayWeek.length === 7) s.awayWeek = d.awayWeek.map(Boolean);
+  for (const [k, v] of Object.entries(obj(d.aplans))) if (isKey(k) && v && Array.isArray(v.blocks)) s.aplans[k] = v;
+  for (const [k, v] of Object.entries(obj(d.theory))) if (/^th-[a-z0-9-]+$/.test(k) && v && typeof v === 'object') s.theory[k] = { done: isKey(v.done) ? v.done : '', at: Math.max(0, Math.round(+v.at || 0)), n: Math.max(0, Math.round(+v.n || 0)), lvl: clamp(Math.round(+v.lvl || 0), 0, 6), due: isKey(v.due) ? v.due : '' };
   s.savedAt = +d.savedAt || 0;
   return s;
 }
@@ -118,6 +124,8 @@ function save() {
   // Keep the last 60 days of plans only.
   const cut = addDays(today(), -60);
   for (const k of Object.keys(S.plans)) if (k < cut) delete S.plans[k];
+  for (const k of Object.keys(S.aplans)) if (k < cut) delete S.aplans[k];
+  for (const k of Object.keys(S.away)) if (k < cut) delete S.away[k];
   try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); SAVE_OK = true; } catch (e) {
     SAVE_OK = false;
     toast('⚠️ Couldn’t save on this device. Storage may be full — try a backup in Settings.', { ms: 6000 });
@@ -340,8 +348,9 @@ function render(fresh) {
   view.innerHTML = v.render(param);
   if (fresh) { void view.offsetWidth; view.classList.add('view-in'); window.scrollTo(0, 0); } else window.scrollTo(0, keep);
   if (v.after) { const c = v.after(view, param); if (fresh || c) UI.cleanup = c || UI.cleanup; }
+  const tabName = v.tab || name;
   for (const t of $$('.tab')) {
-    const on = t.dataset.tab === name;
+    const on = t.dataset.tab === tabName;
     t.classList.toggle('active', on);
     if (on) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
   }
