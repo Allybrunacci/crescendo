@@ -185,7 +185,7 @@ const TOOL_RUN = {
       if (pl) pl.destroy();
       host.innerHTML = `<div class="chips">${[1, 2, 3, 4, 5, 6, 7].map(n => `<button type="button" class="chip${n === lvl ? ' on' : ''}" data-l="${n}">Level ${n}</button>`).join('')}</div>
         <div class="btn-row"><button type="button" class="btn ghost sm" data-new>${icon('redo')} New piece</button></div><div class="player-host"></div>`;
-      pl = createPlayer($('.player-host', host), sightPiece(rng(Date.now()), lvl), { tempo: 66, level: lvl, labels: false, showTempo: true });
+      pl = createPlayer($('.player-host', host), sightPiece(rng(Date.now()), lvl), { tempo: 66, level: lvl, names: true, showTempo: true });
     };
     host.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.l) { lvl = +b.dataset.l; make(); } if ('new' in b.dataset) make(); });
     make();

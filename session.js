@@ -87,7 +87,7 @@ function runBlock(host, b, ctx) {
     host.innerHTML = `<div class="block-intro"><h2>Sight-reading</h2><p class="small">Something new to read. Spend 30 seconds looking (key, time signature, highest and lowest notes), then play it once without stopping.</p>
       <button type="button" class="btn ghost sm" data-new>${icon('redo')} Another one</button></div><div class="player-host"></div>`;
     let pl = null;
-    const make = () => { if (pl) pl.destroy(); pl = createPlayer($('.player-host', host), sightPiece(rng(Date.now()), lvl), { tempo: 66, level: lvl, labels: false, showTempo: true, onFinish: res => { if (res.acc !== null) skillResult('sight', res.acc); done({ score: res.acc }); } }); };
+    const make = () => { if (pl) pl.destroy(); pl = createPlayer($('.player-host', host), sightPiece(rng(Date.now()), lvl), { tempo: 66, level: lvl, names: true, showTempo: true, onFinish: res => { if (res.acc !== null) skillResult('sight', res.acc); done({ score: res.acc }); } }); };
     $('[data-new]', host).onclick = make;
     make();
     return () => pl && pl.destroy();
@@ -200,7 +200,7 @@ function sessionSummary(p) {
   const doneN = p.blocks.filter(b => p.done[b.id]).length;
   setTimeout(() => confetti(36), 300);
   return `<div class="summary">
-    <div class="sum-top"><div class="sum-badge">${icon(p.away ? 'pencil' : 'trophy')}</div><h1>${p.away ? 'Away session complete' : 'Session complete'}</h1><p class="lead">${fmtMins(lg.mins)} today · ${doneN} of ${p.blocks.length} activities</p></div>
+    <div class="sum-top"><div class="mascot-done">${mascot('cheer')}</div><h1>${p.away ? 'Away session complete' : 'Session complete'}</h1><p class="lead">${fmtMins(lg.mins)} today · ${doneN} of ${p.blocks.length} activities</p></div>
     <div class="sum-stats"><div><b>${st.cur}</b><small>day streak</small></div><div><b>${fmtMins(totalMins())}</b><small>all time</small></div>${p.away ? `<div><b>${studiesDone()}</b><small>theory studies</small></div>` : `<div><b>${LESSONS.filter(l => lessonDone(l.id)).length}</b><small>lessons done</small></div>`}</div>
     <div class="card"><h3>How did it feel?</h3><div class="feel">${[[1, '😣', 'Tough'], [2, '🙂', 'Good'], [3, '🤩', 'Great']].map(([n, e, l]) => `<button type="button" class="chip${lg.feel === n ? ' on' : ''}" data-feel="${n}"><span>${e}</span> ${l}</button>`).join('')}</div>
       <label class="field"><span>Practice note <small class="muted">(optional)</small></span><textarea id="sess-note" rows="2" maxlength="500" placeholder="What went well? What to work on next time?">${esc(lg.note || '')}</textarea></label></div>

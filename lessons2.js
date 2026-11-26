@@ -74,7 +74,7 @@ LESSONS.push(
     { t: 'play', h: 'Blues in C', song: 'blues-c' },
     { t: 'text', h: 'ii–V–I', p: ['The jazz musician’s favourite move: **ii7–V7–Imaj7** (Dm7–G7–Cmaj7 in C). Each chord’s root falls a 5th to the next, so it feels like an inevitable slide home: [[chord:Dm7]] [[chord:G7]] [[chord:Cmaj7]]'] },
   ] },
-  { id: 'u6l5', u: 6, title: 'Accompaniment patterns', mins: 9, skills: ['accomp'], cards: [
+  { id: 'u6l5', u: 6, title: 'Accompaniment patterns', mins: 9, skills: ['accomp'], songs: ['scarborough', 'gymnopedie'], cards: [
     { t: 'text', h: 'Bring chords to life', p: ['Holding chords sounds plain. Real accompaniments add rhythm and movement. Here are four patterns over C–Am–F–G. Learn the shape once and use it under any song.'] },
     { t: 'play', h: 'Steady pulse', rh: '"C" [C4,E4,G4]q [C4,E4,G4]q [C4,E4,G4]q [C4,E4,G4]q | "Am" [C4,E4,A4]q [C4,E4,A4]q [C4,E4,A4]q [C4,E4,A4]q | "F" [C4,F4,A4]q [C4,F4,A4]q [C4,F4,A4]q [C4,F4,A4]q | "G" [B3,D4,G4]q [B3,D4,G4]q [B3,D4,G4]q [B3,D4,G4]q', lh: 'C3w | A2w | F2w | G2w', tempo: 80 },
     { t: 'play', h: 'Root–fifth–octave', clef: 'bass', hand: 'L', music: '"C" C3e@5 G3e@2 C4e@1 G3e C3e G3e C4e G3e | "Am" A2e E3e A3e E3e A2e E3e A3e E3e | "F" F2e C3e F3e C3e F2e C3e F3e C3e | "G" G2e D3e G3e D3e G2e D3e G3e D3e', tempo: 80, p: ['A flowing left hand for ballads: root, 5th, octave, 5th.'] },
@@ -88,7 +88,7 @@ LESSONS.push(
   ] },
 
   /* ===================== Unit 7: Reading fluently ===================== */
-  { id: 'u7l1', u: 7, title: 'Ledger lines and the wider range', mins: 8, skills: ['treble3', 'bass2'], cards: [
+  { id: 'u7l1', u: 7, title: 'Ledger lines and the wider range', mins: 8, skills: ['treble3', 'bass2'], songs: ['blue-danube'], cards: [
     { t: 'staff', h: 'Above the treble staff', music: 'F5q G5q A5q B5q | C6w', labels: true, p: ['Notes keep going above the staff on **ledger lines**. **A** sits on the first ledger line above the treble staff, and **C6 (High C)** on the second.'] },
     { t: 'staff', h: 'Below the bass staff', clef: 'bass', music: 'G2q F2q E2q D2q | C2w', labels: true, p: ['Below the bass staff, **E2** is on the first ledger line and **C2** on the second. Count ledger lines just like staff lines: line, space, line…'] },
     { t: 'drill', h: 'Read the high notes', spec: { k: 'read', ranges: [['treble', 'C4', 'C6']], count: 12 } },
@@ -100,14 +100,14 @@ LESSONS.push(
     { t: 'drill', h: 'Name the key', spec: { k: 'keysig', keys: ['C', 'G', 'D', 'A', 'E', 'F', 'Bb', 'Eb', 'Ab'], count: 10 } },
     { t: 'quiz', q: 'The relative minor of G major is…', opts: ['E minor', 'D minor', 'B minor'], ans: 0 },
   ] },
-  { id: 'u7l3', u: 7, title: 'Ties, syncopation and 6/8', mins: 9, skills: ['rhythm4', 'six8'], songs: ['row-boat'], cards: [
+  { id: 'u7l3', u: 7, title: 'Ties, syncopation and 6/8', mins: 9, skills: ['rhythm4', 'six8'], songs: ['row-boat', 'entertainer'], cards: [
     { t: 'staff', h: 'Ties', clef: 'rhythm', music: 'xh~ xq xq | xq xh~ xq | xw', p: ['A **tie** joins two notes of the same pitch into one longer sound. Play the first note and hold it through the second. Ties cross bar lines and beats in ways a single note can’t.'] },
     { t: 'staff', h: 'Syncopation', clef: 'rhythm', music: 'xe xq xe xh | xe xq xq xe xq', p: ['**Syncopation** puts accents *between* beats: notes start on an “and” and hold over the next beat. It’s what makes music swing and groove.'] },
     { t: 'drill', h: 'Dotted and off-beat rhythms', spec: { k: 'rhythm', level: 4, count: 3 } },
     { t: 'staff', h: '6/8 time', time: '6/8', clef: 'rhythm', music: 'xe xe xe xe xe xe | xq. xq. | xq xe xq xe | xh.', p: ['In **6/8** there are six {es} per {bar}, felt as **two big beats** of three: **ONE** two three **FOUR** five six. It has a lilting, rocking feel.'] },
     { t: 'play', h: 'Row, Row, Row Your Boat', song: 'row-boat', p: ['A round in 6/8. Feel two big beats in every {bar}.'] },
   ] },
-  { id: 'u7l4', u: 7, title: 'The sustain pedal', mins: 7, skills: ['pedal'], cards: [
+  { id: 'u7l4', u: 7, title: 'The sustain pedal', mins: 7, skills: ['pedal'], songs: ['londonderry'], cards: [
     { t: 'text', h: 'The right pedal', p: ['The right-hand pedal is the **sustain** (or *damper*) pedal. Press it and notes keep ringing after you lift your fingers, which makes music sound full and connected.', 'Keep your heel on the floor and press with the ball of your foot.'] },
     { t: 'text', h: 'Legato pedalling', p: ['The secret is to change the pedal **just after** each new chord:', '- Play the first chord, then press the pedal.\n- Play the next chord. As it sounds, lift the pedal and press it straight back down.\n- Up–down, just *after* the chord. It feels backwards at first.', 'Pedal markings: **Ped.** means press; a ✱ or the end of a bracket means lift.'] },
     { t: 'tip', h: 'Use your ears', p: ['Too much pedal blurs everything into mush. If chords smear into each other, change the pedal more often. If you have a digital piano with a pedal plugged in, Crescendo hears it too.'] },

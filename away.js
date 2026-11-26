@@ -176,7 +176,7 @@ function runStudy(host, id, opts = {}) {
     save();
     const nx = nextStudy();
     cardEl.className = 'lp-card t-done';
-    cardEl.innerHTML = `<div class="done-card"><div class="done-badge">${icon('check')}</div><h2>${first ? 'Study complete!' : 'Nice refresher!'}</h2><p class="lead">${esc(T(st.title))}</p>
+    cardEl.innerHTML = `<div class="done-card"><div class="mascot-done">${mascot('cheer')}</div><h2>${first ? 'Study complete!' : 'Nice refresher!'}</h2><p class="lead">${esc(T(st.title))}</p>
       <div class="added"><b>What happens next</b><ul><li>Its questions join your quick reviews.</li><li>A refresher comes round in ${plural(REVIEW_DAYS[lvl], 'day')}.</li>${nx ? `<li>Next study: ${esc(T(nx.title))}</li>` : ''}</ul></div></div>`;
     $('.lp-foot', root).innerHTML = opts.embedded ? '' : `<a class="btn ghost" href="#/theory">${icon('list')} All theory</a>${nx ? `<a class="btn primary" href="#/theory/${nx.id}">Next study ${icon('chev-r')}</a>` : ''}`;
     if (first) confetti(24);

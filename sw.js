@@ -1,12 +1,12 @@
 /* Crescendo — offline support. Network first so updates show straight away; the cache is the fallback.
    Only touches its own caches and its own folder, so other apps on the same site are unaffected. */
-const CACHE = 'crescendo-v6';
+const CACHE = 'crescendo-v7';
 const SHELL = [
   './', './index.html', './app.css', './music.js', './audio.js', './listen.js', './input.js', './core.js', './notation.js', './keyboard.js', './player.js',
   './drills.js', './lessons.js', './lessons2.js', './songs.js', './library.js', './tdrills.js', './theory1.js', './theory2.js', './planner.js', './learn.js',
-  './session.js', './practice.js', './songsview.js', './progress.js', './away.js', './settings.js', './manifest.webmanifest',
+  './session.js', './practice.js', './songsview.js', './progress.js', './away.js', './settings.js', './mascot.js', './manifest.webmanifest',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',
-  './fonts/crescendo-notation.woff2', './fonts/figtree-latin.woff2', './fonts/dmserif-latin.woff2',
+  './fonts/crescendo-notation.woff2', './fonts/figtree-latin.woff2', './fonts/fredoka-latin.woff2',
 ];
 
 self.addEventListener('install', e => {

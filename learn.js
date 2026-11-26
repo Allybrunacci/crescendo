@@ -101,7 +101,7 @@ function runLesson(host, id, opts = {}) {
     const nl = nextLesson();
     const added = (l.skills || []).map(k => SKILLS[k] && SKILLS[k].name).filter(Boolean);
     cardEl.className = 'lp-card t-done';
-    cardEl.innerHTML = `<div class="done-card"><div class="done-badge">${icon('check')}</div><h2>${first ? 'Lesson complete!' : 'Nice refresher!'}</h2><p class="lead">${esc(l.title)}</p>
+    cardEl.innerHTML = `<div class="done-card"><div class="mascot-done">${mascot('cheer')}</div><h2>${first ? 'Lesson complete!' : 'Nice refresher!'}</h2><p class="lead">${esc(l.title)}</p>
       ${added.length ? `<div class="added"><b>Now part of your daily practice</b><ul>${added.map(a => `<li>${esc(a)}</li>`).join('')}</ul></div>` : ''}
       ${(l.songs || []).length ? `<div class="added"><b>New in your songs</b><ul>${l.songs.map(s => `<li>${esc(SONG_BY_ID[s].title)}</li>`).join('')}</ul></div>` : ''}</div>`;
     const foot = $('.lp-foot', root);

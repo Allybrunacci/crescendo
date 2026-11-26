@@ -1,6 +1,7 @@
 /* Crescendo — the score player: listen, play along at your own pace (“wait for me”), or play in time */
 'use strict';
 
+const NAME_MODES = ['off', 'tap', 'all'];
 const notationScale = w => (w < 380 ? 7.4 : w < 520 ? 8 : 9) * (S.prefs.size || 1);
 function showLabels(level) {
   if (S.prefs.labels === 'always') return true;
@@ -10,19 +11,26 @@ function showLabels(level) {
 const INPUT_HINT = () => (S.prefs.input === 'midi' && IN.midi.status === 'on' ? 'Play it on your keyboard' : S.prefs.input === 'mic' && (IN.mic.on || MIC.pending) ? 'Play it on your piano — I’m listening' : 'Play it on your piano, or tap the keys below');
 
 function createPlayer(host, piece, opts = {}) {
+  // opts.names (sight-reading): a “Note names” switch — Off, Tap a note (write in just the names you want) or All.
+  const namesUi = !!opts.names;
   const st = {
     hands: opts.hands || (piece.staves.length > 1 ? 'RL' : piece.staves[0].hand),
     tempo: opts.tempo || piece.tempo || 80,
     mode: null, k: 0, wrong: 0, got: new Set(), started: 0, metro: true,
     labels: opts.labels !== undefined ? opts.labels : showLabels(opts.level),
+    penciled: new Set(),
   };
+  st.names = namesUi ? (NAME_MODES.includes(opts.names) ? opts.names : S.prefs.sightNames) : st.labels ? 'all' : 'off';
+  st.labels = st.names === 'all';
   const two = piece.staves.length > 1;
   host.innerHTML = `<div class="player${opts.compact ? ' compact' : ''}">
     <div class="pl-top">
       ${two && opts.handsPick !== false ? `<div class="seg sm hands" role="radiogroup" aria-label="Hands">${[['R', 'Right'], ['L', 'Left'], ['RL', 'Both']].map(([h, l]) => `<button type="button" role="radio" data-h="${h}">${l}</button>`).join('')}</div>` : ''}
       <div class="tempo" role="group" aria-label="Speed"><button type="button" class="icon-btn sm" data-t="-5" aria-label="Slower">${icon('minus')}</button><span><b class="tv">${st.tempo}</b><small>bpm</small></span><button type="button" class="icon-btn sm" data-t="5" aria-label="Faster">${icon('plus')}</button></div>
-      <button type="button" class="icon-btn sm opt-lab${st.labels ? ' on' : ''}" aria-pressed="${st.labels}" aria-label="Show note names" title="Note names"><span class="lab-txt">A–G</span></button>
+      ${namesUi ? '' : `<button type="button" class="icon-btn sm opt-lab${st.labels ? ' on' : ''}" aria-pressed="${st.labels}" aria-label="Show note names" title="Note names"><span class="lab-txt">A–G</span></button>`}
     </div>
+    ${namesUi ? `<div class="pl-names"><span class="pl-names-l">${icon('pencil')}Note names</span><div class="seg sm" role="radiogroup" aria-label="Note names">${[['off', 'Off'], ['tap', 'Tap a note'], ['all', 'All']].map(([k, l]) => `<button type="button" role="radio" data-names="${k}" aria-checked="${st.names === k}" class="${st.names === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+    <p class="pl-names-hint small"${st.names === 'tap' ? '' : ' hidden'}>Tap any note to write its name in. Tap it again to rub it out.</p>` : ''}
     <div class="pl-score" aria-live="off"></div>
     <div class="pl-status" role="status"></div>
     <div class="pl-modes">
@@ -36,16 +44,29 @@ function createPlayer(host, piece, opts = {}) {
   const scoreEl = $('.pl-score', root), statusEl = $('.pl-status', root);
   let sc = null, kb = null, sched = null, metro = null, timers = [], unsub = null, steps = [];
   const later = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); };
+  // Highlights on the music are remembered, so the score can be redrawn (say, to show note names) without losing your place.
+  const marks = new Map();
 
   function draw() {
     const w = scoreEl.clientWidth || host.clientWidth || 340;
-    sc = drawPiece(scoreEl, piece, { hands: st.hands, width: w, scale: notationScale(w), labels: st.labels, fingers: S.prefs.fingers, tempo: opts.showTempo ? st.tempo : null, label: opts.title });
+    const keepTop = scoreEl.scrollTop;
+    const labels = st.names === 'all' ? true : st.names === 'tap' ? (s, i) => st.penciled.has(`${s}:${i}`) : false;
+    sc = drawPiece(scoreEl, piece, { hands: st.hands, width: w, scale: notationScale(w), labels, fingers: S.prefs.fingers, tempo: opts.showTempo ? st.tempo : null, label: opts.title });
     sc.svg.addEventListener('click', e => {
-      const g = e.target.closest('.ev');
-      if (!g || st.mode) return;
-      const ev = sc.staves[+g.dataset.s].events[+g.dataset.i];
-      if (!ev.rest) playChord(eventMidis(ev), 0.9, 0, 0.7);
+      const g = e.target.closest('.ev, .lb');
+      if (!g) return;
+      const s = sc.staffMap[+g.dataset.s], i = +g.dataset.i, ev = piece.staves[s] && piece.staves[s].events[i];
+      if (!ev || ev.rest) return;
+      if (namesUi && st.names === 'tap') {
+        const k = `${s}:${i}`;
+        if (st.penciled.has(k)) st.penciled.delete(k); else st.penciled.add(k);
+        draw();
+      }
+      // Not while you're playing: through the microphone, its sound could be taken for your note.
+      if (!st.mode) playChord(eventMidis(ev), 0.9, 0, 0.7);
     });
+    for (const [k, set] of marks) { const [s, i] = k.split(':').map(Number); const g = sc.elFor(s, i); if (g) set.forEach(c => g.classList.add(c)); }
+    scoreEl.scrollTop = keepTop;
     $$('.hands [data-h]', root).forEach(b => b.setAttribute('aria-checked', b.dataset.h === st.hands));
   }
   function allNotes() { return [].concat(...piece.staves.filter(s => st.hands.includes(s.hand)).map(s => [].concat(...s.events.map(eventMidis)))); }
@@ -72,7 +93,8 @@ function createPlayer(host, piece, opts = {}) {
     if (unsub) unsub();
     unsub = null;
     hush();
-    if (sc) { sc.unmark('on'); sc.unmark('done'); sc.unmark('bad'); }
+    if (sc) { sc.unmark('on'); sc.unmark('done'); sc.unmark('bad'); sc.unmark('miss'); }
+    marks.clear();
     if (kb) kb.clear();
     st.mode = null;
     $$('.pl-modes [data-mode]', root).forEach(b => b.classList.remove('active'));
@@ -90,8 +112,8 @@ function createPlayer(host, piece, opts = {}) {
       if (y < 60 || y + h > window.innerHeight - 160) window.scrollTo({ top: window.scrollY + y - 90, behavior: reduceMotion() ? 'auto' : 'smooth' });
     }
   }
-  const markEv = ([s, i], cls) => { const g = sc && sc.elFor(s, i); if (g) g.classList.add(cls); };
-  const unmarkEv = ([s, i], cls) => { const g = sc && sc.elFor(s, i); if (g) g.classList.remove(cls); };
+  const markEv = ([s, i], cls) => { const k = `${s}:${i}`; if (!marks.has(k)) marks.set(k, new Set()); marks.get(k).add(cls); const g = sc && sc.elFor(s, i); if (g) g.classList.add(cls); };
+  const unmarkEv = ([s, i], cls) => { const m = marks.get(`${s}:${i}`); if (m) m.delete(cls); const g = sc && sc.elFor(s, i); if (g) g.classList.remove(cls); };
   function stepFingers(step) {
     return step.notes.map(m => {
       for (const [s, i] of step.evs) {
@@ -191,7 +213,7 @@ function createPlayer(host, piece, opts = {}) {
       kb.scrollTo(step.notes[0]);
     }
     const names = step.notes.map(m => noteLabel(spell(m, piece.key && KEY_SIGS[piece.key] < 0))).join(' + ');
-    say(`<span class="pl-count">${st.k + 1}/${steps.length}</span> ${INPUT_HINT()}${st.labels ? `: <b>${names}</b>` : ''}`);
+    say(`<span class="pl-count">${st.k + 1}/${steps.length}</span> ${INPUT_HINT()}${st.names === 'all' ? `: <b>${names}</b>` : ''}`);
   }
   function advance() {
     const step = steps[st.k];
@@ -293,7 +315,20 @@ function createPlayer(host, piece, opts = {}) {
     }
     if (b.dataset.h) { stop(true); st.hands = b.dataset.h; draw(); setupKb(); idle(); return; }
     if (b.dataset.t) { st.tempo = clamp(st.tempo + +b.dataset.t, 30, 220); $('.tv', root).textContent = st.tempo; if (st.mode === 'listen' || st.mode === 'time') stop(); return; }
-    if (b.classList.contains('opt-lab')) { st.labels = !st.labels; b.classList.toggle('on', st.labels); b.setAttribute('aria-pressed', st.labels); const m = st.mode; stop(true); draw(); if (m) idle(); else idle(); return; }
+    if (b.classList.contains('opt-lab') || b.dataset.names) {
+      // Showing or hiding names redraws the music but keeps your place, even mid-song.
+      st.names = b.dataset.names || (st.names === 'all' ? 'off' : 'all');
+      st.labels = st.names === 'all';
+      if (namesUi) { S.prefs.sightNames = st.names; save(); }
+      $$('[data-names]', root).forEach(x => { const on = x.dataset.names === st.names; x.classList.toggle('on', on); x.setAttribute('aria-checked', on); });
+      const lab = $('.opt-lab', root);
+      if (lab) { lab.classList.toggle('on', st.labels); lab.setAttribute('aria-pressed', st.labels); }
+      const hint = $('.pl-names-hint', root);
+      if (hint) hint.hidden = st.names !== 'tap';
+      draw();
+      if (st.mode === 'wait' && steps[st.k]) showStep();
+      return;
+    }
     if (b.dataset.rate) {
       $$('.rate button', root).forEach(x => x.classList.toggle('on', x === b));
       if (opts.onRate) opts.onRate(+b.dataset.rate, st.last);

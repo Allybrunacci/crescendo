@@ -107,7 +107,7 @@ function openSettings() {
       <div class="btn-row"><button type="button" class="btn" data-act="export">${icon('down')} Back up</button><button type="button" class="btn ghost" data-act="import">${icon('up')} Restore</button></div>
       <input type="file" name="file" accept="application/json,.json" hidden>
       <div class="btn-row"><button type="button" class="btn ghost danger-t" data-act="reset">Start over</button></div></div></div>
-    <p class="fine">Crescendo ${APP_VERSION}. The piano sound is synthesised in your browser. Music font: a subset of Bravura (© Steinberg Media Technologies GmbH, SIL Open Font License 1.1), renamed “Crescendo Notation”. Text fonts: DM Serif Display and Figtree (SIL OFL 1.1). Songs are public domain or original arrangements.</p>`;
+    <p class="fine">Crescendo ${APP_VERSION}. The piano sound is synthesised in your browser. Music font: a subset of Bravura (© Steinberg Media Technologies GmbH, SIL Open Font License 1.1), renamed “Crescendo Notation”. Text fonts: Fredoka and Figtree (SIL OFL 1.1). Songs are public domain melodies in Crescendo’s own arrangements, or Crescendo originals.</p>`;
   const sh = openSheet(tpl(), {
     label: 'Settings', cls: 'tall',
     onSet: s => {
@@ -209,7 +209,7 @@ function startOnboarding() {
   const st = { step: 0, name: S.name, inst: S.prefs.instrument, week: S.week.slice(), terms: S.prefs.terms, start: 1 };
   const PRESETS = [['10 min a day', [10, 10, 10, 10, 10, 10, 10]], ['15 min a day', [15, 15, 15, 15, 15, 15, 15]], ['20 weekdays, 30 weekends', [30, 20, 20, 20, 20, 20, 30]], ['30 min a day', [30, 30, 30, 30, 30, 30, 30]], ['45 min, 5 days', [0, 45, 45, 45, 45, 45, 0]]];
   const body = () => {
-    if (st.step === 0) return `<div class="ob-art">${ART.piano}</div><h1>Crescendo</h1><p class="tag">Piano, from the very first note</p>
+    if (st.step === 0) return `<div class="ob-art">${mascot('wave')}</div><h1>Crescendo</h1><p class="tag">Piano, from the very first note</p>
       <p class="lead">Short lessons, a daily practice plan built around your time, and real music to play: reading, rhythm, scales, chords and songs.</p>
       <label class="field"><span>What should we call you?</span><input class="input" name="name" maxlength="40" value="${esc(st.name)}" placeholder="Your name (optional)" autocomplete="given-name"></label>`;
     if (st.step === 1) return `<h1>What will you play on?</h1><p class="lead">Crescendo works with any piano, and with the keys on screen.</p>

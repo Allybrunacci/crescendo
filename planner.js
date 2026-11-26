@@ -3,7 +3,9 @@
 
 const lessonDone = id => !!(S.lessons[id] && S.lessons[id].done);
 const nextLesson = () => LESSONS.find(l => !lessonDone(l.id)) || null;
-const unlockedSongs = () => SONGS.filter(s => lessonDone(s.unlock));
+// Unlocked songs in the order their lessons come, so the last one is the newest (the song list isn't in lesson order).
+const lessonPos = id => { const i = LESSONS.findIndex(l => l.id === id); return i < 0 ? 1e9 : i; };
+const unlockedSongs = () => SONGS.filter(s => lessonDone(s.unlock)).sort((a, b) => lessonPos(a.unlock) - lessonPos(b.unlock));
 const skillIds = block => Object.keys(S.skills).filter(k => SKILLS[k] && SKILLS[k].block === block);
 const lessonNo = l => `${l.u}.${LESSONS.filter(x => x.u === l.u).indexOf(l) + 1}`;
 const curLevel = () => { const n = nextLesson(); return n ? n.u : 9; };
@@ -226,7 +228,7 @@ VIEWS.today = {
       <div class="streak${st.cur ? ' on' : ''}" title="Best: ${st.best} days">${icon('flame')}<b>${st.cur}</b><small>day${st.cur === 1 ? '' : 's'}</small></div></section>
       <div class="seg where" role="radiogroup" aria-label="Where are you practising today?">${[['piano', 'piano', 'At the piano'], ['away', 'pencil', 'Away from the piano']].map(([k, ic, l]) => `<button type="button" role="radio" aria-checked="${away === (k === 'away')}" class="${away === (k === 'away') ? 'on' : ''}" data-act="where" data-v="${k}">${icon(ic)}<span>${l}</span></button>`).join('')}</div>`;
     if (!M) {
-      html += `<section class="card hero rest"><div><h2>Rest day</h2><p>No practice planned today. Rest helps your brain lock in what you’ve learned.</p>
+      html += `<section class="card hero rest"><span class="mascot-rest">${mascot('sleep')}</span><div><h2>Rest day</h2><p>No practice planned today. Rest helps your brain lock in what you’ve learned.</p>
         <p class="small">Fancy a quick one anyway?</p><div class="chips">${[5, 10, 15, 20].map(m => `<button type="button" class="chip" data-act="mins" data-m="${m}">${m} min</button>`).join('')}</div></div></section>`;
     } else {
       const pct = Math.min(1, done / M);
@@ -254,7 +256,7 @@ VIEWS.today = {
       html += `<a class="card next-lesson" href="#/learn/${nl.id}"><div><p class="eyebrow">Up next · Unit ${u.n}: ${esc(u.title)}</p><h3>${esc(nl.title)}</h3>
         <div class="bar"><i style="width:${Math.round((doneIn / inUnit.length) * 100)}%"></i></div><p class="small muted">${doneIn} of ${inUnit.length} lessons in this unit${lessonReady(nl) ? '' : ' · it joins your plan after a little more practice, or start it now'}</p></div>${icon('chev-r')}</a>`;
     }
-    html += `<section class="card tip"><span class="tip-ico">${icon('bulb')}</span><div><b>${esc(tip[0])}</b><p>${esc(tip[1])}</p></div></section>`;
+    html += `<section class="card tip"><span class="tip-mascot">${mascot('wave')}</span><div><span class="who">Quaver says</span><b>${esc(tip[0])}</b><p>${esc(tip[1])}</p></div></section>`;
     return html;
   },
   act: {

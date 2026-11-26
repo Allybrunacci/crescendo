@@ -7,4 +7,4 @@ crescendo-notation.woff2
   Reserved Font Name “Bravura”. Licence: OFL-Bravura.txt (SIL Open Font License 1.1).
 
 figtree-latin.woff2      Figtree, by Erik Kennedy. Licence: OFL-Figtree.txt (SIL OFL 1.1).
-dmserif-latin.woff2      DM Serif Display, by Colophon Foundry. Licence: OFL-DMSerifDisplay.txt (SIL OFL 1.1).
+fredoka-latin.woff2      Fredoka, by Milena Brandao and Hafontia. Licence: OFL-Fredoka.txt (SIL OFL 1.1).

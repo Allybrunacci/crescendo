@@ -1,7 +1,7 @@
 /* Crescendo — core: helpers, saved data, words, rich text, sheets, toasts, router and practice-time tracking */
 'use strict';
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const STORE_KEY = 'crescendo:v1';
 
 /* ---------- helpers ---------- */
@@ -56,7 +56,7 @@ const weekStartOf = k => addDays(k, -((dowOf(k) - 1 + 7) % 7));
 function freshState() {
   return {
     v: 1, created: today(), onboarded: false, name: '',
-    prefs: { terms: 'au', labels: 'auto', fingers: true, size: 1, vol: 0.8, metVol: 0.6, midiSound: false, input: 'touch', latency: 0, fx: true, micSens: 1, remind: '18:30', instrument: 'digital' },
+    prefs: { terms: 'au', labels: 'auto', fingers: true, size: 1, vol: 0.8, metVol: 0.6, midiSound: false, input: 'touch', latency: 0, fx: true, micSens: 1, remind: '18:30', instrument: 'digital', sightNames: 'tap' },
     week: [20, 15, 15, 15, 15, 15, 20],
     over: {},
     lessons: {},
@@ -90,6 +90,7 @@ function migrate(d) {
   s.prefs.micSens = clamp(+p.micSens || 1, 0.5, 2);
   s.prefs.remind = /^\d\d:\d\d$/.test(p.remind) ? p.remind : '18:30';
   s.prefs.instrument = ['acoustic', 'digital', 'none'].includes(p.instrument) ? p.instrument : 'digital';
+  s.prefs.sightNames = ['off', 'tap', 'all'].includes(p.sightNames) ? p.sightNames : 'tap';
   if (Array.isArray(d.week) && d.week.length === 7) s.week = d.week.map(n => clamp(Math.round(+n || 0), 0, 180));
   const obj = x => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
   for (const [k, v] of Object.entries(obj(d.over))) if (isKey(k)) s.over[k] = clamp(Math.round(+v || 0), 0, 180);
@@ -186,18 +187,20 @@ const reduceMotion = () => !!(window.matchMedia && matchMedia('(prefers-reduced-
 function confetti(n = 26) {
   if (!S.prefs.fx || reduceMotion()) return;
   const root = $('#fx-root'), W = window.innerWidth;
-  const glyphs = ['♪', '♫', '♩', '♬', '✦'];
+  const glyphs = ['♪', '♫', '★', '♬', '✦'];
+  const colours = ['#6C4CF5', '#FF5FA2', '#FFC21A', '#18C29C', '#3D8BFF', '#FF8A3D'];
   for (let i = 0; i < n; i++) {
     const p = document.createElement('span');
-    p.className = 'fly';
-    p.textContent = glyphs[i % glyphs.length];
+    // A mix of music notes, stars, dots and paper squares, in all the app's colours.
+    const kind = i % 3;
+    p.className = kind === 0 ? 'fly' : kind === 1 ? 'fly dot' : 'fly sq';
+    if (kind === 0) { p.textContent = glyphs[i % glyphs.length]; p.style.fontSize = `${18 + Math.random() * 16}px`; p.style.color = colours[i % colours.length]; }
+    else { p.style.setProperty('--s', `${8 + Math.random() * 8}px`); p.style.background = colours[(i * 7) % colours.length]; }
     p.style.left = `${Math.random() * (W - 24)}px`;
-    p.style.fontSize = `${16 + Math.random() * 16}px`;
-    p.style.setProperty('--dx', `${Math.random() * 120 - 60}px`);
-    p.style.setProperty('--rot', `${Math.random() * 300 - 150}deg`);
+    p.style.setProperty('--dx', `${Math.random() * 140 - 70}px`);
+    p.style.setProperty('--rot', `${Math.random() * 540 - 270}deg`);
     p.style.setProperty('--dur', `${2 + Math.random() * 1.6}s`);
     p.style.setProperty('--delay', `${Math.random() * 0.5}s`);
-    p.style.color = ['var(--felt)', 'var(--brass)', 'var(--ink)', 'var(--blue)'][i % 4];
     root.append(p);
     setTimeout(() => p.remove(), 4300);
   }

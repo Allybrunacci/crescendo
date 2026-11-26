@@ -87,7 +87,7 @@ const LESSONS = [
     { t: 'drill', h: 'Tap in 3/4', spec: { k: 'rhythm', level: 1, time: '3/4', count: 3 } },
     { t: 'play', h: 'Lightly Row', song: 'lightly-row', p: ['A German folk song. Count four beats in every {bar}.'] },
   ] },
-  { id: 'u2l4', u: 2, title: 'Rests and dots', mins: 8, skills: ['rhythm2'], songs: ['au-clair', 'ode-joy'], cards: [
+  { id: 'u2l4', u: 2, title: 'Rests and dots', mins: 8, skills: ['rhythm2'], songs: ['au-clair', 'ode-joy', 'saints'], cards: [
     { t: 'staff', h: 'Rests are silent beats', clef: 'rhythm', music: 'xq rq xh | rh xh | xq xq rh | rw', p: ['A **rest** means *don’t play*, for a number of beats. Keep counting through it!', '- {Qr}: 1 beat.\n- {Hr}: 2 beats. It sits on a line, like a hat.\n- {Wr}: 4 beats, or a whole {bar} of silence. It hangs from a line, like a hole.'] },
     { t: 'staff', h: 'The dot', time: '3/4', music: 'C4h. | E4h. | G4h E4q | C4h.', p: ['A **dot** after a note adds half its length again. A **{dh}** lasts 2 + 1 = **3 beats**: a whole {bar} of 3/4.'] },
     { t: 'quiz', q: 'How many beats does a {dh} last?', opts: ['2', '3', '4'], ans: 1 },
@@ -96,7 +96,7 @@ const LESSONS = [
     { t: 'play', h: 'Au Clair de la Lune', song: 'au-clair', p: ['A French folk song from the 1700s. Hold the {hs} for their full two beats.'] },
     { t: 'play', h: 'Ode to Joy', song: 'ode-joy', p: ['Beethoven’s famous melody, from his 9th Symphony (1824). This version is simplified; you’ll learn the real rhythm in Unit 3.'] },
   ] },
-  { id: 'u2l5', u: 2, title: 'Higher notes: A, B and C', mins: 8, skills: ['treble2'], songs: ['ode-g'], cards: [
+  { id: 'u2l5', u: 2, title: 'Higher notes: A, B and C', mins: 8, skills: ['treble2'], songs: ['ode-g', 'michael-row'], cards: [
     { t: 'staff', h: 'Up to Treble C', music: 'C4q D4q E4q F4q | G4q A4q B4q C5q | C5w', labels: true, p: ['Above G come **A** (second space), **B** (middle line) and **C** (third space). That C is **Treble C**: an *octave* (eight notes) above Middle C. Same name, higher sound.'] },
     { t: 'kb', h: 'G position', from: 'C4', to: 'E5', labels: 'c', marks: [['G4', '1', 'target'], ['A4', '2', 'target'], ['B4', '3', 'target'], ['C5', '4', 'target'], ['D5', '5', 'target']], p: ['Put your right thumb on the **G above Middle C**. Fingers 1–5 now rest on G A B C D.'] },
     { t: 'drill', h: 'Read C to C', spec: { k: 'read', ranges: [['treble', 'C4', 'C5']], count: 12 } },
@@ -125,7 +125,7 @@ const LESSONS = [
     { t: 'play', h: 'Twinkle, Twinkle, Little Star', song: 'twinkle', p: ['Twinkle needs six notes, C to A. Keep your hand in **D position** (thumb on D) and let your thumb reach down for each C. Try each hand alone first.'] },
     { t: 'tip', h: 'Slow is fast', p: ['Practising slowly and correctly builds the right habits; practising fast with mistakes builds the mistakes in. Use the speed buttons to find a tempo where everything is right, then nudge it up.'] },
   ] },
-  { id: 'u3l4', u: 3, title: 'Quavers and dotted crotchets', mins: 9, skills: ['rhythm3'], songs: ['ode-hands', 'jingle-bells', 'frere-jacques'], cards: [
+  { id: 'u3l4', u: 3, title: 'Quavers and dotted crotchets', mins: 9, skills: ['rhythm3'], songs: ['ode-hands', 'jingle-bells', 'frere-jacques', 'happy-birthday', 'merry-christmas'], cards: [
     { t: 'staff', h: '{Es}', clef: 'rhythm', music: 'xq xq xe xe xq | xe xe xe xe xh', p: ['A **{e}** lasts **half a beat**, so two fit in one beat. A single {e} has a flag; groups are joined by a **beam**.', 'Count them “**1** and **2** and…”: the numbers fall on the beat, the “and”s in between.'] },
     { t: 'drill', h: 'Tap the {es}', spec: { k: 'rhythm', level: 3, count: 3 } },
     { t: 'staff', h: 'The {dq}', clef: 'rhythm', music: 'xq. xe xh | xq. xe xq. xe', p: ['A **{dq}** lasts **1½ beats**. It’s usually followed by a {e} to finish the beat: count “**1** – and **2** and”.'] },
@@ -134,7 +134,7 @@ const LESSONS = [
     { t: 'play', h: 'Ode to Joy, the real rhythm', song: 'ode-hands', p: ['Bars 4 and 8 use the dotted rhythm. Your left hand plays the chord roots.'] },
     { t: 'play', h: 'Jingle Bells', song: 'jingle-bells', p: ['Watch for the dotted rhythm in bar 3.'] },
   ] },
-  { id: 'u3l5', u: 3, title: 'Loud, soft, smooth and short', mins: 8, skills: ['dynamics'], songs: ['amazing-grace'], cards: [
+  { id: 'u3l5', u: 3, title: 'Loud, soft, smooth and short', mins: 8, skills: ['dynamics'], songs: ['amazing-grace', 'silent-night', 'brahms-lullaby'], cards: [
     { t: 'text', h: 'Dynamics', p: ['**Dynamics** say how loud to play, in Italian:', '- **p** (*piano*) = soft\n- **mf** (*mezzo forte*) = moderately loud\n- **f** (*forte*) = loud\n- *cresc.* = gradually louder; *dim.* = gradually softer', 'Fun fact: the piano’s full name is the **pianoforte**, the “soft-loud”. It was the first keyboard that could play both, depending on how hard you press.'] },
     { t: 'staff', h: 'Smooth and short', music: '!p ( C4q D4q E4q F4q ) | !f G4q* E4q* C4h', p: ['A curved line over notes is a **slur**: play them **legato**, smoothly connected. A dot above or below a note means **staccato**: short and detached.'] },
     { t: 'quiz', q: 'What does **f** mean?', opts: ['Loud', 'Soft', 'Fast'], ans: 0 },
@@ -144,7 +144,7 @@ const LESSONS = [
   ] },
 
   /* ===================== Unit 4: Sharps, flats & scales ===================== */
-  { id: 'u4l1', u: 4, title: 'Semitones, sharps and flats', mins: 8, skills: ['sharps'], cards: [
+  { id: 'u4l1', u: 4, title: 'Semitones, sharps and flats', mins: 8, skills: ['sharps'], songs: ['deck-halls'], cards: [
     { t: 'kb', h: 'The smallest step', from: 'C4', to: 'B4', labels: 'all', marks: [['E4', 'E', 'target'], ['F4', 'F', 'target'], ['B4', 'B', 'alt']], p: ['A **{semi}** is the distance from one key to the very next key, black or white. Two {semis} make a **{tone}**.', 'Most white keys have a black key between them, so they’re a {tone} apart. But **E–F** and **B–C** have no black key between them: they’re only a {semi} apart.'] },
     { t: 'kb', h: 'Sharps and flats', from: 'C4', to: 'B4', labels: 'all', marks: [['C#4', '♯', 'target']], p: ['A **sharp** (♯) raises a note by a {semi}: C♯ is the key just right of C. A **flat** (♭) lowers a note by a {semi}: D♭ is just left of D. So C♯ and D♭ are the **same key** with two names. A **natural** (♮) cancels a sharp or flat.'] },
     { t: 'staff', h: 'On the staff', music: 'C4q C#4q D4q Eb4q | E4q F4q F#4q G4q | A4q Bb4q B4q C5q | C5w', labels: true, p: ['The sign goes **before** the note, on the same line or space, and lasts until the end of the {bar}.'] },
@@ -153,7 +153,7 @@ const LESSONS = [
     { t: 'drill', h: 'Read sharps and flats', spec: { k: 'read', ranges: [['treble', 'C4', 'C5']], acc: true, flats: true, count: 10 } },
     { t: 'drill', h: 'Find the black keys', spec: { k: 'findkey', letters: ['C#', 'Eb', 'F#', 'Ab', 'Bb'], count: 8 } },
   ] },
-  { id: 'u4l2', u: 4, title: 'The C major scale', mins: 9, skills: ['scale-C'], cards: [
+  { id: 'u4l2', u: 4, title: 'The C major scale', mins: 9, skills: ['scale-C'], songs: ['joy-world'], cards: [
     { t: 'text', h: 'What is a scale?', p: ['A **scale** is a set of notes in order, from one note up to the same letter an octave higher. The **major scale** sounds bright and complete: “do re mi fa so la ti do”.', 'Every major scale follows the same pattern: **{tone}, {tone}, {semi}, {tone}, {tone}, {tone}, {semi}**.'] },
     { t: 'staff', h: 'C major', music: 'C4q@1 D4q@2 E4q@3 F4q@1 | G4q@2 A4q@3 B4q@4 C5q@5 | C5w', labels: true, p: ['C major uses only white keys. Its {semis} fall between E–F and B–C, exactly where the pattern needs them.', 'To play eight notes with five fingers, the **thumb tucks under** after finger 3. Right hand: **1 2 3 – 1 2 3 4 5**.'] },
     { t: 'play', h: 'Right hand, up and down', scale: 'C major', hand: 'R' },
@@ -161,7 +161,7 @@ const LESSONS = [
     { t: 'quiz', q: 'The major scale pattern is…', opts: ['{tone} {tone} {semi} {tone} {tone} {tone} {semi}', '{tone} {semi} {tone} {tone} {semi} {tone} {tone}', '{semi} {tone} {tone} {tone} {semi} {tone} {tone}'], ans: 0 },
     { t: 'tip', h: 'A smooth thumb', p: ['Start moving the thumb under while fingers 2 and 3 are playing, so it’s already waiting over its key. No bumps!'] },
   ] },
-  { id: 'u4l3', u: 4, title: 'G major, F major and key signatures', mins: 9, skills: ['scale-G', 'scale-F', 'keysig1'], songs: ['minuet-g'], cards: [
+  { id: 'u4l3', u: 4, title: 'G major, F major and key signatures', mins: 9, skills: ['scale-G', 'scale-F', 'keysig1'], songs: ['minuet-g', 'auld-lang-syne', 'nachtmusik'], cards: [
     { t: 'staff', h: 'G major needs F♯', music: 'G4q@1 A4q@2 B4q@3 C5q@1 | D5q@2 E5q@3 F#5q@4 G5q@5 | G5w', labels: true, p: ['Start the major pattern on G and the 7th note must be **F♯** to keep the last {semi} in the right place.'] },
     { t: 'staff', h: 'Key signatures', key: 'G', music: 'G4q A4q B4q C5q | D5q E5q F#5q G5q | G5w', p: ['Instead of writing the ♯ every time, music puts it at the start of every line: a **key signature**. One sharp (F♯) means **G major**: every F is played as F♯.'] },
     { t: 'staff', h: 'F major needs B♭', key: 'F', music: 'F4q@1 G4q@2 A4q@3 Bb4q@4 | C5q@1 D5q@2 E5q@3 F5q@4 | F5w', p: ['F major needs **B♭**, so its key signature is one flat. Its right-hand fingering is different: **1 2 3 4 – 1 2 3 4**, so the thumb lands on C, not B♭.'] },
@@ -169,7 +169,7 @@ const LESSONS = [
     { t: 'play', h: 'G major scale', scale: 'G major', hand: 'R' },
     { t: 'play', h: 'Minuet in G', song: 'minuet-g', p: ['Long credited to Bach, now thought to be by Christian Petzold (around 1725). It’s in G major, so watch for F♯.'] },
   ] },
-  { id: 'u4l4', u: 4, title: 'Your first minor key', mins: 8, skills: ['scale-Am', 'majmin'], cards: [
+  { id: 'u4l4', u: 4, title: 'Your first minor key', mins: 8, skills: ['scale-Am', 'majmin'], songs: ['mountain-king', 'greensleeves'], cards: [
     { t: 'text', h: 'Major and minor', p: ['Major keys tend to sound bright; **minor** keys sound darker, sadder or more mysterious. Hear the difference: [[chord:C|C major]] [[chord:Am|A minor]]', 'Every major key has a **relative minor** with the same key signature. It starts on the **6th note** of the major scale.'] },
     { t: 'staff', h: 'A natural minor', music: 'A3q B3q C4q D4q | E4q F4q G4q A4q | A4w', labels: true, p: ['C major’s relative minor is **A minor**: all white keys, from A to A. The same notes as C major, but centred on A.'] },
     { t: 'play', h: 'A minor scale', scale: 'A minor', hand: 'R' },

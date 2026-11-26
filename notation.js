@@ -336,6 +336,9 @@ function engrave(host, spec) {
     } else {
       const hw = HEAD_W[ev.base];
       const head = ev.base === 'w' ? GL.whole : ev.base === 'h' ? GL.half : GL.black;
+      // An invisible target over the note and its staff, so a fingertip can tap it.
+      const hy0 = Math.min(top - 1.2, yOf(inf.hi) - 1.2), hy1 = Math.max(top + 5.2, yOf(inf.lo) + 1.2);
+      parts.push(`<rect class="hit" x="${U(x - 0.8 + offX)}" y="${U(hy0)}" width="${U(hw + 1.6)}" height="${U(hy1 - hy0)}" fill="transparent"/>`);
       // Ledger lines.
       const minX = x + (inf.disp.includes(-1) ? -hw : 0) - 0.4, maxX = x + hw + (inf.disp.includes(1) ? hw : 0) + 0.4;
       if (st.clef !== 'rhythm') {
@@ -396,10 +399,11 @@ function engrave(host, spec) {
       if (DYN_GLYPH[ev.dyn]) glyph.push(T(x - 0.4, yy, ev.dyn.split('').map(ch => GL[ch]).join('')));
       else text.push(`<text class="dw" x="${U(x + offX)}" y="${U(yy)}">${ev.dyn === 'cresc' ? 'cresc.' : ev.dyn === 'dim' ? 'dim.' : esc(ev.dyn)}</text>`);
     }
-    if (spec.labels && !ev.rest && !ev.hit) {
+    // Letter names under the notes: every note, or (when spec.labels is a function) just the ones it picks.
+    if (spec.labels && !ev.rest && !ev.hit && (typeof spec.labels !== 'function' || spec.labels(s, i))) {
       const ln = lines[inf.line], yy = ln.staffY[s] + 4 + ln.st[s].below - 0.5;
-      const names = inf.pos.map((p, j) => [p, noteLabel(ev.ps[j])]).sort((a, b) => b[0] - a[0]).map(n => n[1]);
-      text.push(`<text class="lb" data-s="${s}" data-i="${i}" x="${U(x + HEAD_W[ev.base] / 2 + offX)}" y="${U(yy)}">${names.join('')}</text>`);
+      const names = inf.pos.map((p, j) => [p, noteLabel(ev.ps[j]), ev.ps[j].L]).sort((a, b) => b[0] - a[0]);
+      text.push(`<text class="lb" data-s="${s}" data-i="${i}" x="${U(x + HEAD_W[ev.base] / 2 + offX)}" y="${U(yy)}">${names.map(n => `<tspan class="n-${n[2]}">${n[1]}</tspan>`).join('')}</text>`);
     }
   }));
 
@@ -473,7 +477,7 @@ function drawPiece(host, piece, opt = {}) {
   const map = staves.map(s => piece.staves.indexOf(s));
   const sc = engrave(host, {
     staves: staves.map(s => ({ clef: s.clef, hand: s.hand, events: s.events })), key: piece.key, time: piece.time, bars: piece.bars,
-    width: opt.width, scale: opt.scale, labels: opt.labels, fingers: opt.fingers, chords: opt.chords, maxBars: opt.maxBars,
+    width: opt.width, scale: opt.scale, labels: typeof opt.labels === 'function' ? (s, i) => opt.labels(map[s], i) : opt.labels, fingers: opt.fingers, chords: opt.chords, maxBars: opt.maxBars,
     tempo: opt.tempo, fill: opt.fill, label: opt.label, center: opt.center, showTime: opt.showTime,
   });
   sc.staffMap = map;
