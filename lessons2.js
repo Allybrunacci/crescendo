@@ -123,7 +123,7 @@ LESSONS.push(
   /* ===================== Unit 8: Musicianship ===================== */
   { id: 'u8l1', u: 8, title: 'Improvising with pentatonics', mins: 9, skills: ['improv'], cards: [
     { t: 'text', h: 'Five notes, no wrong ones', p: ['The **pentatonic scale** has five notes. C major pentatonic is **C D E G A**: the major scale without the two notes that can clash (F and B). Remember the black-key music from your second lesson? That was a pentatonic scale too.'] },
-    { t: 'kb', h: 'C major pentatonic', from: 'C4', to: 'B5', labels: 'all', marks: [['C4', '', 'target'], ['D4', '', 'target'], ['E4', '', 'target'], ['G4', '', 'target'], ['A4', '', 'target'], ['C5', '', 'target'], ['D5', '', 'target'], ['E5', '', 'target'], ['G5', '', 'target'], ['A5', '', 'target']], p: ['Make up melodies using only the blue keys. Start and end on C to sound “finished”.'] },
+    { t: 'kb', h: 'C major pentatonic', from: 'C4', to: 'B5', labels: 'all', marks: [['C4', '', 'target'], ['D4', '', 'target'], ['E4', '', 'target'], ['G4', '', 'target'], ['A4', '', 'target'], ['C5', '', 'target'], ['D5', '', 'target'], ['E5', '', 'target'], ['G5', '', 'target'], ['A5', '', 'target']], p: ['Make up melodies using only the gold keys. Start and end on C to sound “finished”.'] },
     { t: 'text', h: 'How to improvise', p: ['- Left hand: loop the pop progression, one chord per {bar} (C, G, Am, F).\n- Right hand: noodle on C D E G A. Short phrases, then rest, like talking.\n- Repeat an idea, then change it slightly. Repetition makes it sound intentional.'] },
     { t: 'text', h: 'The blues scale', p: ['For the 12-bar blues, try **C E♭ F F♯ G B♭ C**, the **blues scale**: [[keys:C4 Eb4 F4 F#4 G4 Bb4 C5|hear it]]. Slide from E♭ to E for that classic bluesy sound.'] },
   ] },

@@ -1,7 +1,7 @@
 /* Crescendo — core: helpers, saved data, words, rich text, sheets, toasts, router and practice-time tracking */
 'use strict';
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 const STORE_KEY = 'crescendo:v1';
 
 /* ---------- helpers ---------- */
@@ -188,7 +188,7 @@ function confetti(n = 26) {
   if (!S.prefs.fx || reduceMotion()) return;
   const root = $('#fx-root'), W = window.innerWidth;
   const glyphs = ['♪', '♫', '★', '♬', '✦'];
-  const colours = ['#6C4CF5', '#FF5FA2', '#FFC21A', '#18C29C', '#3D8BFF', '#FF8A3D'];
+  const colours = ['#2D5241', '#E28F01', '#CC7377', '#D7A0A6', '#5E8C70', '#B06F00'];
   for (let i = 0; i < n; i++) {
     const p = document.createElement('span');
     // A mix of music notes, stars, dots and paper squares, in all the app's colours.

@@ -189,7 +189,7 @@ function createPlayer(host, piece, opts = {}) {
       } else {
         st.wrong++;
         if (kb && m >= kb.from && m <= kb.to) kb.flash(m, 'bad', 380);
-        say(`${icon('x')} That was ${noteLabel(spell(m))}. Look for the ${step.notes.length > 1 ? 'blue keys' : 'blue key'}.`, 'bad');
+        say(`${icon('x')} That was ${noteLabel(spell(m))}. Look for the ${step.notes.length > 1 ? 'gold keys' : 'gold key'}.`, 'bad');
         buzz(25);
       }
     }, true);
